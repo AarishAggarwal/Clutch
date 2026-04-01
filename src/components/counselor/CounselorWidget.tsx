@@ -117,7 +117,7 @@ export default function CounselorWidget() {
             <div className="space-y-2.5">
               {messages.length === 0 ? (
                 <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border-soft)", background: "var(--bg-muted)", color: "var(--text-secondary)" }}>
-                  Ask anything like: "I am a sophomore interested in CS + biology, what should I focus on this year?"
+                  {`Ask anything like: "I am a sophomore interested in CS + biology, what should I focus on this year?"`}
                 </div>
               ) : null}
               {messages.map((m) =>
