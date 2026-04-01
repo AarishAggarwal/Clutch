@@ -2,6 +2,9 @@ import { prisma } from "@/server/prisma";
 import HomeClock from "@/components/HomeClock";
 import HomeShortlistSection from "@/components/home/HomeShortlistSection";
 
+/** Always read fresh counts from the database (avoid static prerender at build time). */
+export const dynamic = "force-dynamic";
+
 function scoreToRingOffset(score: number, radius: number) {
   const circumference = 2 * Math.PI * radius;
   return circumference - (score / 100) * circumference;

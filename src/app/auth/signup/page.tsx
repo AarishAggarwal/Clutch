@@ -52,7 +52,7 @@ function graduationYearFromGrade(grade: StudentSignup["grade"]): number | undefi
   return seniorClassYear + (12 - g);
 }
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
   const search = useSearchParams();
   const role = (search.get("role") ?? "student").toLowerCase();
@@ -243,3 +243,18 @@ export default function SignupPage() {
   );
 }
 
+export default function SignupPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="page-wrap max-w-3xl py-10">
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            Loading…
+          </p>
+        </div>
+      }
+    >
+      <SignupContent />
+    </React.Suspense>
+  );
+}

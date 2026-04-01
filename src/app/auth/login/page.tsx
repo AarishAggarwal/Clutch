@@ -1,9 +1,10 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const search = useSearchParams();
   const role = (search.get("role") ?? "student").toLowerCase();
   const destination = role === "counselor" ? "/counselor" : role === "specialist" ? "/specialist" : "/dashboard";
@@ -33,3 +34,18 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="page-wrap max-w-2xl py-10">
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            Loading…
+          </p>
+        </div>
+      }
+    >
+      <LoginContent />
+    </React.Suspense>
+  );
+}

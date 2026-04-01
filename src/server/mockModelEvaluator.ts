@@ -83,8 +83,8 @@ export function generateMockModelEvaluation(params: {
 
   const vividSignals = (essay.match(/\b(spark|ignite|intense|sharp|quiet|sudden|specific|concrete|measured|real|tangible)\b/gi) || []).length;
 
-  // Provider offset: mock "Claude" is slightly more critical than mock "OpenAI".
-  const providerDelta = provider === "claude" ? -0.8 : +0.6;
+  // Provider offset: mock second model (DeepSeek slot) is slightly more critical than mock OpenAI.
+  const providerDelta = provider === "deepseek" ? -0.8 : +0.6;
 
   const authenticity = clamp(4 + firstPersonCount * 0.6 - clicheCount * 0.9 + providerDelta, 0, 10);
   const specificity = clamp(2.5 + numericCount * 1.1 + capitalizedCount * 0.08 + vividSignals * 0.25, 0, 10);

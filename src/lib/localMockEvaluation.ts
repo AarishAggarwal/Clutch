@@ -14,7 +14,7 @@ export function runLocalMockEvaluation(params: {
   });
 
   const claude: ModelEvaluationJson = generateMockModelEvaluation({
-    provider: "claude",
+    provider: "deepseek",
     essayType: params.essayType,
     essayText: params.essayText,
   });
