@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Conversation {
+  id               String            @id @default(cuid())
+  title            String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  messages         Message[]
+  essaySubmissions EssaySubmission[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role           String
+  content        String
+  messageType    String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model EssaySubmission {
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now())
+
+  essayType          String
+  title              String?
+  content            String
+  supplementalUniversityId   String?
+  supplementalUniversityName String?
+  supplementalPromptId       String?
+  supplementalPromptQuestion String?
+  supplementalPromptCycleYear String?
+
+  modelEvaluations  ModelEvaluation[]
+  fusedEvaluation   FusedEvaluation?
+
+  @@index([conversationId, createdAt])
+}
+
+model ModelEvaluation {
+  id              String   @id @default(cuid())
+  essaySubmissionId String
+  essaySubmission EssaySubmission @relation(fields: [essaySubmissionId], references: [id], onDelete: Cascade)
+
+  provider        String
+  modelName       String
+
+  rawJson         String
+  parsedJson      String
+  validSchema     Boolean
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+
+  @@index([essaySubmissionId, provider, createdAt])
+}
+
+model FusedEvaluation {
+  id              String   @id @default(cuid())
+  essaySubmissionId String @unique
+  essaySubmission EssaySubmission @relation(fields: [essaySubmissionId], references: [id], onDelete: Cascade)
+
+  fusedJson       String
+  agreementSummary String
+  disagreementFlags String
+  mode            String
+  createdAt       DateTime @default(now())
+}
+
+model University {
+  id                  String   @id @default(cuid())
+  externalId          String?  @unique
+  name                String
+  slug                String   @unique
+  city                String?
+  state               String?
+  control             String?
+  level               String?
+  website             String?
+  logoUrl             String?
+  logoSource          String?
+  address             String?
+  phone               String?
+  applicationFee      Int?
+  tuitionInState      Int?
+  tuitionOutOfState   Int?
+  averageAnnualCost   Int?
+  housingAvailable    Boolean?
+  housingCost         Int?
+  campusSetting       String?
+  acceptanceRate      Float?
+  graduationRate      Float?
+  medianEarnings      Int?
+  undergradEnrollment Int?
+  totalEnrollment     Int?
+  satReading25        Int?
+  satReading75        Int?
+  satMath25           Int?
+  satMath75           Int?
+  act25               Int?
+  act75               Int?
+  testingPolicy       String?
+  admissionsDeadlineED String?
+  admissionsDeadlineEA String?
+  admissionsDeadlineRD String?
+  popularMajors       String?
+  notes               String?
+  sourceName          String?
+  sourceUrl           String?
+  sourceCoreName      String?
+  sourceAdmissionsName String?
+  sourceBrandName     String?
+  sourceCoreUrl       String?
+  sourceAdmissionsUrl String?
+  sourceBrandUrl      String?
+  rawSourcePayload    String?
+  lastVerifiedAt      DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Essay {
+  id         String   @id @default(cuid())
+  title      String
+  essayType  String
+  content    String
+  status     String
+  wordCount  Int
+  notes      String?
+  draft      Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Activity {
+  id               String   @id @default(cuid())
+  title            String
+  category         String
+  organization     String
+  role             String
+  grades           String
+  hoursPerWeek     Float
+  weeksPerYear     Int
+  description      String
+  achievementNotes String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model StudentProfile {
+  id               String   @id @default(cuid())
+  fullName         String?
+  graduationYear   Int?
+  schoolName       String?
+  gpa              Float?
+  sat              Int?
+  act              Int?
+  intendedMajors   String
+  courseworkSummary String?
+  location         String?
+  interests        String
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  category  String
+  content   String
+  tags      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

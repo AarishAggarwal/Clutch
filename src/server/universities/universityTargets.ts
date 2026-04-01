@@ -1,0 +1,15 @@
+export const universityIngestionTargets = [
+  { name: "Stanford University", website: "https://www.stanford.edu", admissionsUrl: "https://admission.stanford.edu" },
+  { name: "Harvard University", website: "https://www.harvard.edu", admissionsUrl: "https://college.harvard.edu/admissions" },
+  { name: "Massachusetts Institute of Technology", website: "https://www.mit.edu", admissionsUrl: "https://mitadmissions.org" },
+  { name: "Princeton University", website: "https://www.princeton.edu", admissionsUrl: "https://admission.princeton.edu" },
+  { name: "University of California-Berkeley", website: "https://www.berkeley.edu", admissionsUrl: "https://admissions.berkeley.edu" },
+  { name: "University of California-Los Angeles", website: "https://www.ucla.edu", admissionsUrl: "https://admission.ucla.edu" },
+  { name: "New York University", website: "https://www.nyu.edu", admissionsUrl: "https://www.nyu.edu/admissions" },
+  { name: "Harvey Mudd College", website: "https://www.hmc.edu", admissionsUrl: "https://www.hmc.edu/admission" },
+  { name: "Purdue University-Main Campus", website: "https://www.purdue.edu", admissionsUrl: "https://www.admissions.purdue.edu" },
+  { name: "University of Wisconsin-Madison", website: "https://www.wisc.edu", admissionsUrl: "https://admissions.wisc.edu" },
+  { name: "Rice University", website: "https://www.rice.edu", admissionsUrl: "https://admission.rice.edu" },
+  { name: "Duke University", website: "https://www.duke.edu", admissionsUrl: "https://admissions.duke.edu" },
+  { name: "Brown University", website: "https://www.brown.edu", admissionsUrl: "https://admission.brown.edu" },
+] as const;
