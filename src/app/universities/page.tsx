@@ -55,7 +55,9 @@ export default function UniversitiesPage() {
     })();
   }, [query, control, stateFilter, costMax, acceptanceMax, housingOnly, sort]);
 
-  const states = Array.from(new Set(rows.map((u) => u.state))).sort();
+  const states = Array.from(
+    new Set(rows.map((u) => u.state).filter((s): s is string => s != null && s !== "")),
+  ).sort();
 
   function toggleShortlist(slug: string) {
     const next = savedSlugs.includes(slug)
