@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const hasSecret = Boolean(process.env.NEXTAUTH_SECRET?.trim());
   const hasUrl = Boolean(process.env.NEXTAUTH_URL?.trim());
 
+  const cookieHeader = req.headers.get("cookie") ?? null;
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -13,6 +14,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     host: req.headers.get("host"),
+    cookiesPresent: Boolean(cookieHeader),
+    rawCookies: cookieHeader,
     nextAuth: {
       NEXTAUTH_URL_present: hasUrl,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? null,
