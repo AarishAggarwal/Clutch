@@ -42,3 +42,6 @@ College_Scorecard_Raw_Data_03232026/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*.local

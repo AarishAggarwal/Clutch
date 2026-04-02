@@ -44,6 +44,15 @@ if (process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.tr
   );
 }
 
+/**
+ * Account linking (credentials ↔ Google, same email):
+ * With the Prisma adapter and default NextAuth behavior, automatic email-based linking
+ * is NOT enabled. If a `User` already exists for an email (e.g. from password signup),
+ * Google OAuth returns `OAuthAccountNotLinked` instead of attaching the Google `Account`.
+ * To allow linking, NextAuth supports `allowDangerousEmailAccountLinking` in options (with
+ * serious account-takeover considerations; pair with verified-email rules and UX audits).
+ * This app leaves it disabled until an explicit linking flow exists.
+ */
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },

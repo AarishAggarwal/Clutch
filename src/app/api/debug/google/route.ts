@@ -15,13 +15,12 @@ export async function GET(req: Request) {
 
   const accounts = await prisma.account.findMany({
     where: { userId: user?.id },
-    orderBy: { createdAt: "desc" as any },
+    orderBy: { id: "desc" },
     select: {
       id: true,
       provider: true,
       providerAccountId: true,
       type: true,
-      createdAt: true as any,
     },
   });
 

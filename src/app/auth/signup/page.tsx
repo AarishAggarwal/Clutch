@@ -4,11 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import AuthErrorCallout from "@/components/auth/AuthErrorCallout";
+import { getAuthErrorPresentation, presentationFromSignInError } from "@/lib/authErrors";
 
 type Step = "account" | "otp";
 
 function StudentSignupWizard() {
   const router = useRouter();
+  const search = useSearchParams();
   const [step, setStep] = React.useState<Step>("account");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -16,10 +19,16 @@ function StudentSignupWizard() {
   const [otp, setOtp] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [localAuthPresentation, setLocalAuthPresentation] = React.useState<ReturnType<typeof getAuthErrorPresentation>>(null);
+
+  const urlErrorParam = search.get("error");
+  const urlAuthPresentation = React.useMemo(() => getAuthErrorPresentation(urlErrorParam), [urlErrorParam]);
+  const authCallout = urlAuthPresentation ?? localAuthPresentation;
 
   async function submitAccount(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLocalAuthPresentation(null);
     if (password !== confirm) {
       setError("Passwords do not match.");
       return;
@@ -49,6 +58,7 @@ function StudentSignupWizard() {
   async function submitOtp(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLocalAuthPresentation(null);
     setBusy(true);
     try {
       const res = await fetch("/api/auth/verify-otp", {
@@ -67,7 +77,7 @@ function StudentSignupWizard() {
         redirect: false,
       });
       if (sign?.error) {
-        setError("Verified, but sign-in failed. Try logging in manually.");
+        setLocalAuthPresentation(presentationFromSignInError(sign.error) ?? getAuthErrorPresentation("CredentialsSignin"));
         return;
       }
       router.push("/auth/complete-profile");
@@ -79,11 +89,13 @@ function StudentSignupWizard() {
 
   function onGoogle() {
     setError(null);
+    setLocalAuthPresentation(null);
     void signIn("google", { callbackUrl: "/auth/complete-profile" });
   }
 
   async function resendCode() {
     setError(null);
+    setLocalAuthPresentation(null);
     if (!email.trim() || !password) {
       setError("Go back to step 1 if you need to change email or password.");
       return;
@@ -112,6 +124,19 @@ function StudentSignupWizard() {
         <p className="page-subtitle mt-1">
           Enter your school email and a password. We will email you a one-time code to verify before you finish your profile.
         </p>
+        {authCallout ? (
+          <div>
+            <AuthErrorCallout presentation={authCallout} />
+            {authCallout.audience === "use_password_instead_of_google" ? (
+              <p className="mt-3 text-sm">
+                <Link href="/auth/login?role=student" className="font-medium underline underline-offset-2" style={{ color: "var(--text-primary)" }}>
+                  Go to student login
+                </Link>{" "}
+                and sign in with your email and password.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {error ? (
           <div className="mt-4 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
             {error}
@@ -196,6 +221,7 @@ function StudentSignupWizard() {
       <p className="page-subtitle mt-1">
         We sent a 6-digit code to <strong>{email}</strong>. Enter it below (expires in 15 minutes).
       </p>
+      {authCallout ? <AuthErrorCallout presentation={authCallout} /> : null}
       {error ? (
         <div className="mt-4 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
           {error}
