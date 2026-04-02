@@ -1,4 +1,7 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/server/prisma";
+import { authOptions } from "@/lib/auth";
 import HomeClock from "@/components/HomeClock";
 import HomeShortlistSection from "@/components/home/HomeShortlistSection";
 
@@ -15,17 +18,23 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    redirect("/auth/login?callbackUrl=/dashboard");
+  }
+  const userId = session.user.id;
+
   const [essayCount, activityCount, profile] = await Promise.all([
-    prisma.essay.count(),
-    prisma.activity.count(),
-    prisma.studentProfile.findFirst({ orderBy: { updatedAt: "desc" } }),
+    prisma.essay.count({ where: { userId } }),
+    prisma.activity.count({ where: { userId } }),
+    prisma.studentProfile.findUnique({ where: { userId } }),
   ]);
 
   const essayScore = clamp(Math.round((essayCount / 8) * 100), 0, 100);
   const activityScore = clamp(Math.round((activityCount / 10) * 100), 0, 100);
   const gpaScore = profile?.gpa != null ? clamp(Math.round((profile.gpa / 4) * 100), 0, 100) : 0;
   const testBase = profile?.sat != null ? Math.round((profile.sat / 1600) * 100) : profile?.act != null ? Math.round((profile.act / 36) * 100) : 0;
-  const gradesScore = clamp(Math.round((gpaScore * 0.7) + (testBase * 0.3)), 0, 100);
+  const gradesScore = clamp(Math.round(gpaScore * 0.7 + testBase * 0.3), 0, 100);
   const overallProgress = Math.round((essayScore + activityScore + gradesScore) / 3);
 
   const rings = [{ radius: 104, width: 14, color: "stroke-teal-500", score: overallProgress }];
@@ -109,7 +118,14 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {[
                 { title: "Activities", score: activityScore, note: `${activityCount} activity entries` },
-                { title: "Grades", score: gradesScore, note: profile?.gpa != null ? `GPA ${profile.gpa.toFixed(2)}${profile?.sat ? ` · SAT ${profile.sat}` : profile?.act ? ` · ACT ${profile.act}` : ""}` : "Add GPA/test scores in Profile" },
+                {
+                  title: "Grades",
+                  score: gradesScore,
+                  note:
+                    profile?.gpa != null
+                      ? `GPA ${profile.gpa.toFixed(2)}${profile?.sat ? ` · SAT ${profile.sat}` : profile?.act ? ` · ACT ${profile.act}` : ""}`
+                      : "Add GPA/test scores in Profile",
+                },
               ].map((d) => (
                 <div key={d.title} className="panel-muted p-3">
                   <div className="flex items-center justify-between">
@@ -148,4 +164,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-

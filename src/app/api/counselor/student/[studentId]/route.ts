@@ -18,17 +18,22 @@ function computeReadiness(params: { essayCount: number; activityCount: number; g
 }
 
 export async function GET(_: Request, ctx: { params: { studentId: string } }) {
-  const profile = await prisma.studentProfile.findFirst({ orderBy: { updatedAt: "desc" } });
-  if (!profile) return NextResponse.json({ error: "No student profile found." }, { status: 404 });
-
-  const computedStudentId = toStudentId(profile.id);
-  if (ctx.params.studentId.toUpperCase() !== computedStudentId.toUpperCase()) {
+  const want = ctx.params.studentId.toUpperCase();
+  const profiles = await prisma.studentProfile.findMany({
+    where: { userId: { not: null } },
+    orderBy: { updatedAt: "desc" },
+  });
+  const profile = profiles.find((p) => toStudentId(p.id).toUpperCase() === want);
+  if (!profile?.userId) {
     return NextResponse.json({ error: "Student ID not found." }, { status: 404 });
   }
 
+  const computedStudentId = toStudentId(profile.id);
+  const uid = profile.userId;
+
   const [essays, activities, locker] = await Promise.all([
-    prisma.essay.findMany({ orderBy: { updatedAt: "desc" } }),
-    prisma.activity.findMany({ orderBy: { updatedAt: "desc" } }),
+    prisma.essay.findMany({ where: { userId: uid }, orderBy: { updatedAt: "desc" } }),
+    prisma.activity.findMany({ where: { userId: uid }, orderBy: { updatedAt: "desc" } }),
     prisma.document.findMany({ where: { category: "Locker" }, orderBy: { updatedAt: "desc" } }),
   ]);
 
@@ -53,4 +58,3 @@ export async function GET(_: Request, ctx: { params: { studentId: string } }) {
     })),
   });
 }
-

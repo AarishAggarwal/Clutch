@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AppNav from "@/components/AppNav";
 import CounselorWidget from "@/components/counselor/CounselorWidget";
+import Providers from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,11 +26,13 @@ export default function RootLayout({
           "app-surface h-full antialiased",
         ].join(" ")}
       >
-        <div className="flex h-full min-h-0 flex-col">
-          <AppNav />
-          <main className="flex-1 min-h-0">{children}</main>
-          <CounselorWidget />
-        </div>
+        <Providers>
+          <div className="flex h-full min-h-0 flex-col">
+            <AppNav />
+            <main className="flex-1 min-h-0">{children}</main>
+            <CounselorWidget />
+          </div>
+        </Providers>
       </body>
     </html>
   );

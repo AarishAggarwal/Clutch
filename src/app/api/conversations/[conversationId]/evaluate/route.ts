@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { evaluateEssayWithProviders } from "@/server/providerOrchestrator";
 import { saveEssayEvaluation } from "@/server/chatPersistence";
 import { evaluateEssayRequestSchema } from "@/lib/chatSchemas";
 import { prisma } from "@/server/prisma";
+import { authOptions } from "@/lib/auth";
 
 function computeEssayTitle(params: {
   essayType: string;
@@ -33,6 +35,12 @@ export async function POST(
   ctx: { params: { conversationId: string } },
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+
     const { conversationId } = ctx.params;
     if (!conversationId) {
       return NextResponse.json({ error: "Missing conversationId." }, { status: 400 });
@@ -62,6 +70,7 @@ export async function POST(
     });
 
     const activities = await prisma.activity.findMany({
+      where: { userId },
       orderBy: { updatedAt: "desc" },
       take: 12,
       select: {

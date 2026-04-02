@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const studentNavItems = [
@@ -69,6 +70,15 @@ export default function AppNav() {
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </Link>
+          ) : null}
+          {!isCounselorUi ? (
+            <button
+              type="button"
+              onClick={() => void signOut({ callbackUrl: "/" })}
+              className="btn-ghost px-2 py-1 text-xs"
+            >
+              Sign out
+            </button>
           ) : null}
           <ThemeToggle />
         </div>
