@@ -26,14 +26,21 @@ function LoginContent() {
         email: email.trim().toLowerCase(),
         password,
         redirect: false,
+        callbackUrl,
       });
       if (res?.error) {
         setError("Wrong email or password, or your email is not verified yet.");
         return;
       }
       if (res?.ok) {
-        router.push(callbackUrl);
-        router.refresh();
+        // `redirect: false` won't navigate automatically. Use NextAuth's computed URL when available
+        // to avoid middleware/session timing issues.
+        if (res.url) {
+          window.location.href = res.url;
+        } else {
+          router.push(callbackUrl);
+          router.refresh();
+        }
       }
     } finally {
       setLoading(false);
