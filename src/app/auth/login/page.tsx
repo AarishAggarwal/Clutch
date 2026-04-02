@@ -17,6 +17,23 @@ function LoginContent() {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
+  // NextAuth redirects back with an `error=` query param on auth failure.
+  // Surface it so it's obvious whether credentials failed vs session/env issues.
+  React.useEffect(() => {
+    const code = search.get("error");
+    if (!code) return;
+
+    if (code === "CredentialsSignin") {
+      setError("Login failed. Check email/password and confirm you verified your email with OTP.");
+      return;
+    }
+    if (code === "OAuthSignin") {
+      setError("Google sign-in failed. Check Google redirect URI configuration.");
+      return;
+    }
+    setError(`Login failed: ${code}`);
+  }, [search]);
+
   async function onCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
