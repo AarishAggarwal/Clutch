@@ -22,26 +22,17 @@ function LoginContent() {
     setError(null);
     setLoading(true);
     try {
+      // Let NextAuth perform the redirect so the session cookie is definitely set
+      // before middleware runs.
       const res = await signIn("credentials", {
         email: email.trim().toLowerCase(),
         password,
-        redirect: false,
+        redirect: true,
         callbackUrl,
       });
-      if (res?.error) {
-        setError("Wrong email or password, or your email is not verified yet.");
-        return;
-      }
-      if (res?.ok) {
-        // `redirect: false` won't navigate automatically. Use NextAuth's computed URL when available
-        // to avoid middleware/session timing issues.
-        if (res.url) {
-          window.location.href = res.url;
-        } else {
-          router.push(callbackUrl);
-          router.refresh();
-        }
-      }
+
+      // If sign-in fails, NextAuth will return to this page and `res?.error` is set.
+      if (res?.error) setError("Wrong email or password, or your email is not verified yet.");
     } finally {
       setLoading(false);
     }
