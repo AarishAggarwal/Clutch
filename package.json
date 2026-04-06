@@ -15,7 +15,7 @@
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:delete-all-users": "node scripts/delete-all-users.mjs",
-    "db:sync-universities-api": "dotenv -e .env.local -- tsx scripts/sync-universities-api.ts"
+    "db:sync-universities-api": "dotenv -e .env.local -- node node_modules/tsx/dist/cli.mjs scripts/sync-universities-api.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

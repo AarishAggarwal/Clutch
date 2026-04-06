@@ -1,5 +1,5 @@
 import { prisma } from "@/server/prisma";
-import { normalizeScorecardApiRecord } from "@/server/universities/universityNormalizer";
+import { normalizeScorecardApiRecord, unflattenCollegeScorecardRow } from "@/server/universities/universityNormalizer";
 
 const SCORECARD_API = "https://api.data.gov/ed/collegescorecard/v1/schools.json";
 
@@ -112,13 +112,14 @@ export async function ingestAllSchoolsFromScorecardApi(
     if (!results.length) break;
 
     for (const raw of results) {
-      if (!useServerFilters && !isMainCampusPredominantlyFourYear(raw)) {
+      const row = unflattenCollegeScorecardRow(raw as Record<string, unknown>);
+      if (!useServerFilters && !isMainCampusPredominantlyFourYear(row)) {
         filteredOut += 1;
         continue;
       }
-      if (!raw.school?.name || raw.id == null) continue;
+      if (!row.school?.name || row.id == null) continue;
 
-      const data = normalizeScorecardApiRecord(raw);
+      const data = normalizeScorecardApiRecord(row);
       await prisma.university.upsert({
         where: { slug: data.slug },
         create: data,

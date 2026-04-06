@@ -7,11 +7,14 @@
  *  - `DATABASE_URL` pointing at your Neon/Postgres database (same one Vercel uses)
  *
  * Usage:
- *   npx dotenv-cli -e .env.local -- npx tsx scripts/sync-universities-api.ts
+ *   npm run db:sync-universities-api
+ *
+ * Optional: MAX_SCHOOLS=500 (or any number) for a partial import instead of the full catalog.
  *
  * Or (cmd.exe):
  *   set COLLEGE_SCORECARD_API_KEY=your_key
  *   set DATABASE_URL=postgresql://...
+ *   set MAX_SCHOOLS=500
  *   npx tsx scripts/sync-universities-api.ts
  */
 import { ingestAllSchoolsFromScorecardApi } from "../src/server/universities/scorecardApiIngestion";
@@ -28,8 +31,14 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Syncing universities from College Scorecard API (several minutes)…");
-  const result = await ingestAllSchoolsFromScorecardApi(key);
+  const maxRaw = process.env.MAX_SCHOOLS?.trim();
+  const maxSchools = maxRaw ? Math.max(1, parseInt(maxRaw, 10) || 0) : undefined;
+  if (maxSchools) {
+    console.log(`Syncing up to ${maxSchools} schools (MAX_SCHOOLS)…`);
+  } else {
+    console.log("Syncing universities from College Scorecard API (can take several minutes for a full catalog)…");
+  }
+  const result = await ingestAllSchoolsFromScorecardApi(key, { maxSchools });
   console.log(JSON.stringify(result, null, 2));
 }
 

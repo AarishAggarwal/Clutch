@@ -69,11 +69,8 @@ export default function ProjectCompetitionsPage() {
             My deadlines & notes
           </h2>
           <p className="section-meta mt-1 mb-4">
-            Add one-off fairs, regional rounds, or anything not in the directory.{" "}
-            <Link href="/activities" className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
-              Activities
-            </Link>{" "}
-            stays focused on your list; competition discovery lives here in Projects.
+            Add one-off fairs, regional rounds, or anything not in the index above. Your Common App–style activity list stays
+            under <Link href="/activities" className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>Activities</Link>.
           </p>
 
           <div className="panel space-y-3 p-4">

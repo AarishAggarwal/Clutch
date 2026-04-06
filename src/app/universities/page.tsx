@@ -166,6 +166,26 @@ export default function UniversitiesPage() {
         <div className="mb-4">
           <h1 className="page-title">College Discovery</h1>
           <p className="page-subtitle">Search, filter, and shortlist universities with structured facts and source-backed data.</p>
+          {rows.length > 0 && rows.length <= 30 ? (
+            <div
+              className="panel-muted mt-4 max-w-3xl rounded-lg border p-3 text-sm leading-relaxed"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
+            >
+              <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+                Seeing only about {rows.length} schools?
+              </span>{" "}
+              On hosted deploys without the giant College Scorecard CSV, the database is filled from a{" "}
+              <strong>small bundled snapshot</strong> (~13 curated schools). “Refresh data” re-applies that bundle—it does
+              not download the full national list. To load <strong>thousands</strong> of schools into{" "}
+              <strong>your production Postgres</strong>, run{" "}
+              <code className="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-xs">npm run db:sync-universities-api</code>{" "}
+              on your computer with <code className="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-xs">DATABASE_URL</code>{" "}
+              set to the same URL Vercel uses, plus a free{" "}
+              <code className="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-xs">COLLEGE_SCORECARD_API_KEY</code> from{" "}
+              api.data.gov. Optional: <code className="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-xs">MAX_SCHOOLS=500</code>{" "}
+              for a faster partial import. Then reload this page.
+            </div>
+          ) : null}
         </div>
         <section className="panel p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

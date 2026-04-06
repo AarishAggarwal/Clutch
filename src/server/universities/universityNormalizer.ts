@@ -36,6 +36,38 @@ function popularMajorsFromRaw(raw: any): string | null {
 }
 
 /**
+ * The Scorecard API returns dot-notation keys per field (e.g. `"school.name": "Harvard"`) when
+ * using `fields=…`, not nested `{ school: { name } }`. Our code expects nested objects.
+ */
+export function unflattenCollegeScorecardRow(row: Record<string, unknown>): any {
+  if (row == null || typeof row !== "object") return row;
+  if (
+    "school" in row &&
+    row.school != null &&
+    typeof row.school === "object" &&
+    !Array.isArray(row.school)
+  ) {
+    return row;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (key === "id") {
+      out.id = value;
+      continue;
+    }
+    const parts = key.split(".");
+    let cur: any = out;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const p = parts[i];
+      if (cur[p] == null || typeof cur[p] !== "object" || Array.isArray(cur[p])) cur[p] = {};
+      cur = cur[p] as Record<string, unknown>;
+    }
+    cur[parts[parts.length - 1]] = value;
+  }
+  return out;
+}
+
+/**
  * Maps a College Scorecard API `schools` result object to Prisma fields.
  * Uses the same field paths as https://api.data.gov/ed/collegescorecard/v1/schools
  */

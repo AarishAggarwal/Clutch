@@ -88,11 +88,12 @@ export default function ActivitiesPage() {
             <p className="page-subtitle">
               Build your Common App–style activity list with roles, time commitment, and impact notes.
             </p>
+            <p className="section-meta mt-2 max-w-2xl">
+              Competition discovery, saved targets, and deadline tracking are in the project workspace: use{" "}
+              <strong>Create project</strong>, then open the <strong>Competitions</strong> tab.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/projects/competitions" className="btn-secondary shrink-0">
-              Competitions
-            </Link>
             <Link href="/projects/progress" className="btn-primary shrink-0">
               Create project
             </Link>
