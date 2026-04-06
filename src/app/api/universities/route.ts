@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getUniversities } from "@/server/universities/universityService";
 
+/** Avoid empty/stale cached responses on serverless (e.g. Vercel) after first deploy. */
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") ?? undefined;
@@ -25,5 +28,12 @@ export async function GET(req: Request) {
     sort,
   });
 
-  return NextResponse.json({ universities });
+  return NextResponse.json(
+    { universities },
+    {
+      headers: {
+        "Cache-Control": "private, no-store, must-revalidate",
+      },
+    },
+  );
 }

@@ -80,8 +80,19 @@ function mapAdmissionsOverridesByName() {
   return map;
 }
 
+const SCORECARD_CSV_RELATIVE = ["College_Scorecard_Raw_Data_03232026", "Most-Recent-Cohorts-Institution.csv"] as const;
+
+export function getLocalScorecardCsvPath() {
+  return path.join(process.cwd(), ...SCORECARD_CSV_RELATIVE);
+}
+
+/** True when the large College Scorecard CSV is present (typically local dev only; not deployed to Vercel). */
+export function isLocalScorecardCsvAvailable(): boolean {
+  return fs.existsSync(getLocalScorecardCsvPath());
+}
+
 export async function ingestFromLocalScorecardCsv() {
-  const csvPath = path.join(process.cwd(), "College_Scorecard_Raw_Data_03232026", "Most-Recent-Cohorts-Institution.csv");
+  const csvPath = getLocalScorecardCsvPath();
   if (!fs.existsSync(csvPath)) throw new Error(`Local Scorecard file not found at ${csvPath}`);
 
   const byName = mapAdmissionsOverridesByName();

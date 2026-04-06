@@ -28,6 +28,7 @@ yarn-error.log*
 # env & secrets (never commit real keys)
 .env
 .env*.local
+.env.neon
 
 # local sqlite (use Postgres in production)
 prisma/*.db

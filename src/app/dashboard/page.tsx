@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/server/prisma";
 import { authOptions } from "@/lib/auth";
 import HomeClock from "@/components/HomeClock";
@@ -144,6 +145,20 @@ export default async function DashboardPage() {
         </section>
 
         <HomeShortlistSection />
+
+        <div className="panel mt-6 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="section-heading">Application preview</div>
+              <p className="section-meta mt-0.5 max-w-xl">
+                Review your profile, list, activities, and essay titles in one Common App–style read-through.
+              </p>
+            </div>
+            <Link href="/application-preview" className="btn-primary px-4 py-2 text-sm">
+              Open preview
+            </Link>
+          </div>
+        </div>
 
         <div className="panel mt-6 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

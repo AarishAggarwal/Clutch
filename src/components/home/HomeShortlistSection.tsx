@@ -3,18 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import type { UniversityRecord } from "@/lib/universityTypes";
+import { bandsForSlugs, loadShortlistBands, loadShortlistSlugs, type ListBand } from "@/lib/universityShortlist";
 
-function readShortlistSlugs(): string[] {
-  if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem("savedUniversities");
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [];
-  } catch {
-    return [];
-  }
-}
+const bandLabel: Record<ListBand, string> = {
+  dream: "Dream",
+  target: "Target",
+  reach: "Reach",
+};
 
 function prettyAcceptance(rate: number | null) {
   if (rate == null) return "—";
@@ -36,19 +31,23 @@ function deadlinesLine(uni: UniversityRecord) {
 
 export default function HomeShortlistSection() {
   const [slugs, setSlugs] = React.useState<string[]>([]);
+  const [bands, setBands] = React.useState<Record<string, ListBand>>({});
   const [allUniversities, setAllUniversities] = React.useState<UniversityRecord[]>([]);
   const [open, setOpen] = React.useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = React.useState(false);
 
   const refreshSlugs = React.useCallback(() => {
-    setSlugs(readShortlistSlugs());
+    const s = loadShortlistSlugs();
+    const b = bandsForSlugs(s, loadShortlistBands());
+    setSlugs(s);
+    setBands(b);
   }, []);
 
   React.useEffect(() => {
     refreshSlugs();
     void (async () => {
       try {
-        const res = await fetch("/api/universities");
+        const res = await fetch("/api/universities", { cache: "no-store" });
         const data = (await res.json()) as { universities: UniversityRecord[] };
         setAllUniversities(data.universities ?? []);
       } finally {
@@ -134,6 +133,12 @@ export default function HomeShortlistSection() {
                     </span>
                     <span className="font-medium" style={{ color: "var(--text-primary)" }}>
                       {uni.name}
+                    </span>
+                    <span
+                      className="rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase"
+                      style={{ borderColor: "var(--border-soft)", color: "var(--accent-strong)" }}
+                    >
+                      {bandLabel[bands[uni.slug] ?? "target"]}
                     </span>
                     {uni.city && uni.state ? (
                       <span className="section-meta hidden sm:inline">

@@ -33,8 +33,10 @@ export default function ChatThread(props: {
   messages: ChatMessage[];
   isEvaluating: boolean;
   evaluatingStatusText: string;
+  /** Load this essay text into the composer to revise and resubmit. */
+  onEditUserEssay?: (content: string) => void;
 }) {
-  const { messages, isEvaluating, evaluatingStatusText } = props;
+  const { messages, isEvaluating, evaluatingStatusText, onEditUserEssay } = props;
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -61,7 +63,19 @@ export default function ChatThread(props: {
                     color: "var(--bg-elevated)",
                   }}
                 >
-                  <div className="text-[11px] font-semibold uppercase tracking-wide opacity-80">Your essay</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide opacity-80">Your essay</div>
+                    {onEditUserEssay && !isEvaluating ? (
+                      <button
+                        type="button"
+                        onClick={() => onEditUserEssay(m.content)}
+                        className="shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-90 hover:opacity-100"
+                        style={{ borderColor: "color-mix(in oklab, var(--bg-elevated) 45%, transparent)" }}
+                      >
+                        Edit
+                      </button>
+                    ) : null}
+                  </div>
                   <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{m.content}</div>
                 </div>
               </div>

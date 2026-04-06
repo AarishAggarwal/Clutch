@@ -24,15 +24,19 @@ export default function IdeaCard({
   index,
   onSave,
   onToggleFavorite,
+  onSaveToActivities,
   isSaved,
   isFavorite,
+  saveToActivitiesPending,
 }: {
   idea: ProjectIdea;
   index: number;
   onSave: () => void;
   onToggleFavorite: () => void;
+  onSaveToActivities?: () => void;
   isSaved: boolean;
   isFavorite: boolean;
+  saveToActivitiesPending?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const s = idea.scores;
@@ -81,6 +85,16 @@ export default function IdeaCard({
           <button type="button" onClick={onSave} disabled={isSaved} className="btn-secondary rounded-lg px-3 py-1.5 text-xs font-semibold">
             {isSaved ? "Saved" : "Save idea"}
           </button>
+          {onSaveToActivities ? (
+            <button
+              type="button"
+              onClick={onSaveToActivities}
+              disabled={saveToActivitiesPending}
+              className="btn-primary rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-55"
+            >
+              {saveToActivitiesPending ? "Saving…" : "Save to Activities"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onToggleFavorite}

@@ -296,7 +296,15 @@ export default function ChatShell() {
           </div>
         </header>
 
-        <ChatThread messages={messages} isEvaluating={isEvaluating} evaluatingStatusText={evaluatingStatusText} />
+        <ChatThread
+          messages={messages}
+          isEvaluating={isEvaluating}
+          evaluatingStatusText={evaluatingStatusText}
+          onEditUserEssay={(content) => {
+            setEssayText(content);
+            setComposerError(null);
+          }}
+        />
 
         <ChatComposer
           essayType={essayType}

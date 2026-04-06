@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import CompetitionsExplorer from "@/components/competitions/CompetitionsExplorer";
 
-const STORAGE = "projectCompetitions:v1";
+const MANUAL_STORAGE = "projectCompetitions:v1";
 
 type Row = { id: string; name: string; deadline: string; url: string; notes: string };
 
@@ -13,7 +15,7 @@ export default function ProjectCompetitionsPage() {
 
   React.useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE);
+      const raw = localStorage.getItem(MANUAL_STORAGE);
       if (raw) setRows(JSON.parse(raw) as Row[]);
     } catch {
       /* ignore */
@@ -23,7 +25,7 @@ export default function ProjectCompetitionsPage() {
 
   React.useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(STORAGE, JSON.stringify(rows));
+    localStorage.setItem(MANUAL_STORAGE, JSON.stringify(rows));
   }, [rows, hydrated]);
 
   function addRow() {
@@ -57,103 +59,116 @@ export default function ProjectCompetitionsPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="page-wrap py-6">
-        <h1 className="page-title">Competitions</h1>
-        <p className="page-subtitle mb-6">
-          Track fairs, hackathons, science fairs, and scholarship deadlines alongside your build timeline.
-        </p>
+        <CompetitionsExplorer
+          title="Competitions"
+          subtitle="Browse the full index, save targets, and open official details—then track custom deadlines below."
+        />
 
-        <div className="panel space-y-3 p-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2">
-              <label className="field-label">Name</label>
-              <input
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="input-base"
-                placeholder="e.g., Regeneron ISEF regional"
-              />
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+            My deadlines & notes
+          </h2>
+          <p className="section-meta mt-1 mb-4">
+            Add one-off fairs, regional rounds, or anything not in the directory.{" "}
+            <Link href="/activities" className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
+              Activities
+            </Link>{" "}
+            stays focused on your list; competition discovery lives here in Projects.
+          </p>
+
+          <div className="panel space-y-3 p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="sm:col-span-2">
+                <label className="field-label">Name</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="input-base"
+                  placeholder="e.g., Regeneron ISEF regional"
+                />
+              </div>
+              <div>
+                <label className="field-label">Deadline</label>
+                <input
+                  value={form.deadline}
+                  onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+                  className="input-base"
+                  placeholder="e.g., 2026-03-15"
+                />
+              </div>
+              <div>
+                <label className="field-label">URL</label>
+                <input
+                  value={form.url}
+                  onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+                  className="input-base"
+                  placeholder="https://…"
+                />
+              </div>
             </div>
             <div>
-              <label className="field-label">Deadline</label>
+              <label className="field-label">Notes</label>
               <input
-                value={form.deadline}
-                onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 className="input-base"
-                placeholder="e.g., 2026-03-15"
+                placeholder="Requirements, theme, prize…"
               />
             </div>
-            <div>
-              <label className="field-label">URL</label>
-              <input
-                value={form.url}
-                onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-                className="input-base"
-                placeholder="https://…"
-              />
-            </div>
+            <button type="button" onClick={addRow} className="btn-primary">
+              Add manual entry
+            </button>
           </div>
-          <div>
-            <label className="field-label">Notes</label>
-            <input
-              value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              className="input-base"
-              placeholder="Requirements, theme, prize…"
-            />
-          </div>
-          <button type="button" onClick={addRow} className="btn-primary">
-            Add competition
-          </button>
-        </div>
 
-        <div className="mt-4 overflow-x-auto rounded-lg border" style={{ borderColor: "var(--border-soft)" }}>
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead style={{ background: "var(--bg-elevated)" }}>
-              <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Deadline</th>
-                <th className="px-3 py-2 font-medium">Link</th>
-                <th className="px-3 py-2 font-medium">Notes</th>
-                <th className="px-3 py-2 w-24" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
+          <div className="mt-4 overflow-x-auto rounded-lg border" style={{ borderColor: "var(--border-soft)" }}>
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead style={{ background: "var(--bg-elevated)" }}>
                 <tr>
-                  <td colSpan={5} className="section-meta px-3 py-6 text-center">
-                    No entries yet.
-                  </td>
+                  <th className="px-3 py-2 font-medium">Name</th>
+                  <th className="px-3 py-2 font-medium">Deadline</th>
+                  <th className="px-3 py-2 font-medium">Link</th>
+                  <th className="px-3 py-2 font-medium">Notes</th>
+                  <th className="w-24 px-3 py-2" />
                 </tr>
-              ) : (
-                rows.map((r) => (
-                  <tr key={r.id} className="border-t" style={{ borderColor: "var(--border-soft)" }}>
-                    <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>
-                      {r.name}
-                    </td>
-                    <td className="px-3 py-2 section-meta">{r.deadline || "—"}</td>
-                    <td className="px-3 py-2">
-                      {r.url ? (
-                        <a href={r.url} target="_blank" rel="noreferrer" className="text-[var(--accent)] underline-offset-2 hover:underline">
-                          Open
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-3 py-2 section-meta max-w-xs truncate" title={r.notes}>
-                      {r.notes || "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <button type="button" onClick={() => removeRow(r.id)} className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Remove
-                      </button>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="section-meta px-3 py-6 text-center">
+                      No manual entries yet.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  rows.map((r) => (
+                    <tr key={r.id} className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+                      <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>
+                        {r.name}
+                      </td>
+                      <td className="section-meta px-3 py-2">{r.deadline || "—"}</td>
+                      <td className="px-3 py-2">
+                        {r.url ? (
+                          <a href={r.url} target="_blank" rel="noreferrer" className="text-[var(--accent)] underline-offset-2 hover:underline">
+                            Open
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="section-meta max-w-xs truncate px-3 py-2" title={r.notes}>
+                        {r.notes || "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <button type="button" onClick={() => removeRow(r.id)} className="text-xs" style={{ color: "var(--text-muted)" }}>
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );

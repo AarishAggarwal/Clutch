@@ -2,14 +2,23 @@
 
 import Link from "next/link";
 import type { UniversityRecord } from "@/lib/universityTypes";
+import type { ListBand } from "@/lib/universityShortlist";
 import UniversityLogo from "@/components/universities/UniversityLogo";
+
+const bandLabel: Record<ListBand, string> = {
+  dream: "Dream",
+  target: "Target",
+  reach: "Reach",
+};
 
 export default function UniversityCard(props: {
   university: UniversityRecord;
   shortlisted: boolean;
+  listBand?: ListBand;
   onToggleShortlist: (slug: string) => void;
+  onListBandChange?: (slug: string, band: ListBand) => void;
 }) {
-  const { university, shortlisted, onToggleShortlist } = props;
+  const { university, shortlisted, listBand = "target", onToggleShortlist, onListBandChange } = props;
   return (
     <article className="panel group p-4 transition hover:shadow-[0_4px_14px_-6px_rgba(16,24,40,0.12)]">
       <div className="flex items-start justify-between gap-3">
@@ -48,6 +57,24 @@ export default function UniversityCard(props: {
           </span>
         </div>
       </div>
+      {shortlisted && onListBandChange ? (
+        <div className="mt-3">
+          <label className="section-meta mb-1 block text-[10px] uppercase tracking-wider">List tier</label>
+          <select
+            value={listBand}
+            onChange={(e) => onListBandChange(university.slug, e.target.value as ListBand)}
+            className="input-base w-full py-1.5 text-xs"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(Object.keys(bandLabel) as ListBand[]).map((b) => (
+              <option key={b} value={b}>
+                {bandLabel[b]}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
           <span className="badge-neutral">{university.control ?? "Institution"}</span>

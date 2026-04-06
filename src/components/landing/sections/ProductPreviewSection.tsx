@@ -88,7 +88,7 @@ export function ProductPreviewSection() {
           </div>
         </MockDeviceFrame>
 
-        <MockDeviceFrame title="Activities — competitions">
+        <MockDeviceFrame title="Projects — competitions">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium" style={{ color: "var(--text-primary)" }}>
@@ -101,15 +101,15 @@ export function ProductPreviewSection() {
                 National Science Bowl
               </div>
               <div className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Science · Team · US — save, open details, track deadlines on the official site
+                Science · Team · US — saved targets and filters live in the Projects workspace
               </div>
             </div>
             <div className="panel-muted rounded-lg px-3 py-2">
               <div className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
-                Your activities list
+                Activities list
               </div>
               <div className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Common App–style fields, hours, honors in Locker
+                Common App–style entries stay on Activities; ship ideas from Projects into your list
               </div>
             </div>
           </div>

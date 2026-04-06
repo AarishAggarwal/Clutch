@@ -1,1 +1,1 @@
-export const SUPPLEMENTAL_CYCLE_YEAR = "2026-27" as const;
+export const SUPPLEMENTAL_CYCLE_YEAR = "2025-26" as const;

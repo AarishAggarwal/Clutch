@@ -3,10 +3,18 @@
 import * as React from "react";
 import type { UniversityRecord } from "@/lib/universityTypes";
 import UniversityCard from "@/components/universities/UniversityCard";
+import {
+  bandsForSlugs,
+  loadShortlistBands,
+  loadShortlistSlugs,
+  persistShortlist,
+  type ListBand,
+} from "@/lib/universityShortlist";
 
 export default function UniversitiesPage() {
   const [rows, setRows] = React.useState<UniversityRecord[]>([]);
   const [tab, setTab] = React.useState<"all" | "discover" | "list">("all");
+  const [listBandFilter, setListBandFilter] = React.useState<"all" | ListBand>("all");
   const [query, setQuery] = React.useState("");
   const [control, setControl] = React.useState("");
   const [stateFilter, setStateFilter] = React.useState("");
@@ -15,6 +23,7 @@ export default function UniversitiesPage() {
   const [housingOnly, setHousingOnly] = React.useState(false);
   const [sort, setSort] = React.useState("alphabetical");
   const [savedSlugs, setSavedSlugs] = React.useState<string[]>([]);
+  const [shortlistBands, setShortlistBands] = React.useState<Record<string, ListBand>>({});
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [refreshNote, setRefreshNote] = React.useState<string | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = React.useState<string | null>(null);
@@ -23,12 +32,16 @@ export default function UniversitiesPage() {
     notFound: number;
     failed: number;
     usingLocalScorecardFolder: boolean;
+    skippedLocalCsv?: boolean;
+    appliedBundledSeed?: boolean;
     loadedUniversities?: string[];
   } | null>(null);
 
   React.useEffect(() => {
-    const raw = window.localStorage.getItem("savedUniversities");
-    if (raw) setSavedSlugs(JSON.parse(raw) as string[]);
+    const slugs = loadShortlistSlugs();
+    const bands = loadShortlistBands();
+    setSavedSlugs(slugs);
+    setShortlistBands(bandsForSlugs(slugs, bands));
   }, []);
 
   React.useEffect(() => {
@@ -41,7 +54,7 @@ export default function UniversitiesPage() {
       if (acceptanceMax) params.set("acceptanceMax", acceptanceMax);
       if (housingOnly) params.set("housingOnly", "1");
       if (sort) params.set("sort", sort);
-      const res = await fetch(`/api/universities?${params.toString()}`);
+      const res = await fetch(`/api/universities?${params.toString()}`, { cache: "no-store" });
       const data = (await res.json()) as { universities: UniversityRecord[] };
       setRows(data.universities);
       if (data.universities.length) {
@@ -63,12 +76,33 @@ export default function UniversitiesPage() {
     const next = savedSlugs.includes(slug)
       ? savedSlugs.filter((x) => x !== slug)
       : Array.from(new Set([...savedSlugs, slug]));
+    let nextBands = { ...shortlistBands };
+    if (next.includes(slug) && !savedSlugs.includes(slug)) {
+      nextBands[slug] = nextBands[slug] ?? "target";
+    }
+    if (!next.includes(slug)) {
+      const { [slug]: _, ...rest } = nextBands;
+      nextBands = rest;
+    }
+    nextBands = bandsForSlugs(next, nextBands);
     setSavedSlugs(next);
-    window.localStorage.setItem("savedUniversities", JSON.stringify(next));
-    window.dispatchEvent(new Event("shortlist-updated"));
+    setShortlistBands(nextBands);
+    persistShortlist(next, nextBands);
   }
 
-  const visible = tab === "list" ? rows.filter((r) => savedSlugs.includes(r.slug)) : rows;
+  function setBandForSlug(slug: string, band: ListBand) {
+    const nextBands = { ...shortlistBands, [slug]: band };
+    setShortlistBands(nextBands);
+    persistShortlist(savedSlugs, nextBands);
+  }
+
+  const visible = React.useMemo(() => {
+    let base = tab === "list" ? rows.filter((r) => savedSlugs.includes(r.slug)) : rows;
+    if (tab === "list" && listBandFilter !== "all") {
+      base = base.filter((r) => (shortlistBands[r.slug] ?? "target") === listBandFilter);
+    }
+    return base;
+  }, [rows, tab, savedSlugs, listBandFilter, shortlistBands]);
 
   async function handleRefreshData() {
     setIsRefreshing(true);
@@ -83,16 +117,21 @@ export default function UniversitiesPage() {
           notFound: number;
           failed: number;
           usingLocalScorecardFolder: boolean;
+          skippedLocalCsv?: boolean;
+          appliedBundledSeed?: boolean;
           loadedUniversities?: string[];
         };
       };
       if (refreshPayload.report) {
         setLastRefreshReport(refreshPayload.report);
-        setRefreshNote(
-          `Refreshed ${refreshPayload.report.refreshed}, not found ${refreshPayload.report.notFound}, failed ${refreshPayload.report.failed}${
-            refreshPayload.report.usingLocalScorecardFolder ? " (local scorecard folder)" : ""
-          }.`,
-        );
+        const r = refreshPayload.report;
+        const mode =
+          r.skippedLocalCsv || !r.usingLocalScorecardFolder
+            ? r.appliedBundledSeed
+              ? " (bundled catalog)"
+              : " (hosted — no local CSV)"
+            : " (local scorecard folder)";
+        setRefreshNote(`Refreshed ${r.refreshed}, not found ${r.notFound}, failed ${r.failed}${mode}.`);
       } else {
         setRefreshNote("Data refreshed from source.");
       }
@@ -104,7 +143,7 @@ export default function UniversitiesPage() {
       if (acceptanceMax) params.set("acceptanceMax", acceptanceMax);
       if (housingOnly) params.set("housingOnly", "1");
       if (sort) params.set("sort", sort);
-      const dataRes = await fetch(`/api/universities?${params.toString()}`);
+      const dataRes = await fetch(`/api/universities?${params.toString()}`, { cache: "no-store" });
       const data = (await dataRes.json()) as { universities: UniversityRecord[] };
       setRows(data.universities);
       const latest = data.universities
@@ -148,7 +187,12 @@ export default function UniversitiesPage() {
             <div className="panel-muted mb-3 p-2 text-xs" style={{ color: "var(--text-secondary)" }}>
               Sync report: refreshed {lastRefreshReport.refreshed}, not found {lastRefreshReport.notFound}, failed{" "}
               {lastRefreshReport.failed}
-              {lastRefreshReport.usingLocalScorecardFolder ? " · local CSV pipeline active" : ""}.
+              {lastRefreshReport.usingLocalScorecardFolder
+                ? " · local CSV pipeline active"
+                : lastRefreshReport.skippedLocalCsv
+                  ? " · CSV not on server — bundled catalog used on hosted deploys"
+                  : ""}
+              {lastRefreshReport.appliedBundledSeed ? " · re-synced from bundled snapshot" : ""}.
               {lastRefreshReport.loadedUniversities?.length
                 ? ` Loaded: ${lastRefreshReport.loadedUniversities.join(", ")}`
                 : ""}
@@ -177,6 +221,20 @@ export default function UniversitiesPage() {
               Your List ({savedSlugs.length})
             </button>
           </div>
+          {tab === "list" && savedSlugs.length > 0 ? (
+            <div className="nav-pill mb-3 w-fit max-w-full flex-wrap">
+              {(["all", "dream", "target", "reach"] as const).map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setListBandFilter(b)}
+                  className={["nav-pill-link", listBandFilter === b ? "nav-pill-link--active" : ""].join(" ")}
+                >
+                  {b === "all" ? "All tiers" : b === "dream" ? "Dream" : b === "target" ? "Target" : "Reach"}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="mb-2">
             <input
               value={query}
@@ -234,7 +292,14 @@ export default function UniversitiesPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((u) => (
-              <UniversityCard key={u.id} university={u} shortlisted={savedSlugs.includes(u.slug)} onToggleShortlist={toggleShortlist} />
+              <UniversityCard
+                key={u.id}
+                university={u}
+                shortlisted={savedSlugs.includes(u.slug)}
+                listBand={shortlistBands[u.slug] ?? "target"}
+                onToggleShortlist={toggleShortlist}
+                onListBandChange={setBandForSlug}
+              />
             ))}
           </div>
           {!visible.length ? (

@@ -90,7 +90,7 @@ export default function ActivitiesPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/activities/competitions" className="btn-secondary shrink-0">
+            <Link href="/projects/competitions" className="btn-secondary shrink-0">
               Competitions
             </Link>
             <Link href="/projects/progress" className="btn-primary shrink-0">

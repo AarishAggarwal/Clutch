@@ -46,7 +46,7 @@ export default function HomeClock() {
 
   return (
     <div className="panel px-4 py-3 text-center">
-      <div className="kpi-label">2026-27 cycle opens in</div>
+      <div className="kpi-label">2025-26 cycle opens in</div>
       {timeLeft.isOpen ? (
         <div className="mt-2 text-lg font-semibold" style={{ color: "var(--accent-strong)" }}>
           Application cycle is open

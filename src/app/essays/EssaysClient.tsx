@@ -48,7 +48,7 @@ export default function EssaysClient() {
   React.useEffect(() => {
     void refresh();
     void (async () => {
-      const res = await fetch("/api/universities");
+      const res = await fetch("/api/universities", { cache: "no-store" });
       const data = (await res.json()) as { universities: UniversityRecord[] };
       setUniversities(data.universities);
     })();
@@ -122,7 +122,7 @@ export default function EssaysClient() {
       ...s,
       essayType: "supplemental_essay",
       title: `${selectedUniversity.name} — ${promptText.slice(0, 52)}`,
-      notes: `Prompt (${selectedPrompt?.cycleYear ?? "2026-27"}): ${promptText}`,
+      notes: `Prompt (${selectedPrompt?.cycleYear ?? "2025-26"}): ${promptText}`,
     }));
   }
 

@@ -1,6 +1,7 @@
 import { prisma } from "@/server/prisma";
 import type { DiscoveryFilters, UniversityRecord } from "@/lib/universityTypes";
-import { ingestFromLocalScorecardCsv } from "@/server/universities/localScorecardIngestion";
+import { seedBundledUniversitiesFromJson } from "@/server/universities/bundledUniversitySeed";
+import { ingestFromLocalScorecardCsv, isLocalScorecardCsvAvailable } from "@/server/universities/localScorecardIngestion";
 
 export async function syncUniversitiesFromSources() {
   const report = {
@@ -10,7 +11,15 @@ export async function syncUniversitiesFromSources() {
     failed: 0,
     failures: [] as Array<{ target: string; error: string }>,
     loadedUniversities: [] as string[],
+    /** Set when the Scorecard CSV folder is not on disk (normal on Vercel). */
+    skippedLocalCsv: false,
   };
+
+  if (!isLocalScorecardCsvAvailable()) {
+    report.skippedLocalCsv = true;
+    return report;
+  }
+
   try {
     const local = await ingestFromLocalScorecardCsv();
     report.totalTargets = local.loaded.length;
@@ -33,7 +42,27 @@ export async function syncUniversitiesFromSources() {
 
 export async function forceRefreshUniversitiesFromSources() {
   const report = await syncUniversitiesFromSources();
-  return { ...report, usingLocalScorecardFolder: true };
+
+  if (report.skippedLocalCsv) {
+    try {
+      const { upserted } = await seedBundledUniversitiesFromJson();
+      return {
+        ...report,
+        refreshed: upserted,
+        usingLocalScorecardFolder: false,
+        appliedBundledSeed: true as const,
+      };
+    } catch (err) {
+      report.failed += 1;
+      report.failures.push({
+        target: "Bundled university seed",
+        error: String((err as any)?.message ?? err),
+      });
+      return { ...report, usingLocalScorecardFolder: false, appliedBundledSeed: false as const };
+    }
+  }
+
+  return { ...report, usingLocalScorecardFolder: true, appliedBundledSeed: false as const };
 }
 
 function parseMajors(popularMajors: string | null): string[] {
@@ -149,9 +178,21 @@ export function mapUniversityRow(row: any): UniversityRecord {
 }
 
 export async function ensureUniversityCache() {
-  const count = await prisma.university.count();
+  let count = await prisma.university.count();
+  if (count >= 8) return;
+
+  await syncUniversitiesFromSources();
+  count = await prisma.university.count();
+
+  // Vercel (and other hosts) do not ship the multi‑GB College Scorecard CSV folder.
+  // Fall back to a small bundled JSON snapshot so production always has the curated catalog.
   if (count < 8) {
-    await syncUniversitiesFromSources();
+    try {
+      await seedBundledUniversitiesFromJson();
+    } catch (err) {
+      console.error("[ensureUniversityCache] Bundled seed failed:", err);
+      throw err;
+    }
   }
 }
 

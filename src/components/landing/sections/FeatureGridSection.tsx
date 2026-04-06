@@ -56,7 +56,7 @@ const features = [
   },
   {
     title: "Activities & awards workspace",
-    desc: "Common App–style activity entries, project workspace, competitions tab, and a locker for certificates and honors—all organized around your narrative.",
+    desc: "Common App–style activity entries, a project workspace with a competitions tab, and a locker for certificates and honors—all organized around your narrative.",
     value: "Evidence and story live in one place, not scattered files.",
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">

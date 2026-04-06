@@ -80,7 +80,47 @@ export default function ProjectIdeatorStudio() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showIntake, setShowIntake] = React.useState(true);
+  const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
+  const [editDraft, setEditDraft] = React.useState("");
+  const [activitySavingKey, setActivitySavingKey] = React.useState<string | null>(null);
+  const [activitySaveError, setActivitySaveError] = React.useState<string | null>(null);
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
+
+  function ideaKey(idea: ProjectIdea) {
+    return `${idea.title}::${idea.oneLineConcept}`;
+  }
+
+  async function saveIdeaToActivities(idea: ProjectIdea) {
+    setActivitySaveError(null);
+    setActivitySavingKey(ideaKey(idea));
+    try {
+      const desc = [idea.oneLineConcept, idea.problemStatement, idea.solutionConcept].filter(Boolean).join("\n\n");
+      const res = await fetch("/api/activities", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: idea.title.slice(0, 120),
+          category: "Extracurricular",
+          organization: "Independent project",
+          role: "Student researcher / builder",
+          grades: "9-12",
+          hoursPerWeek: 5,
+          weeksPerYear: 36,
+          description: desc.slice(0, 3000),
+          achievementNotes: idea.whyStrong?.slice(0, 2000) ?? "",
+        }),
+      });
+      if (!res.ok) {
+        const p = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(p.error ?? `HTTP ${res.status}`);
+      }
+    } catch (e: unknown) {
+      setActivitySaveError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setActivitySavingKey(null);
+    }
+  }
 
   React.useEffect(() => {
     setChat(loadJSON<ChatEntry[]>(CHAT_STORAGE, []));
@@ -154,6 +194,8 @@ export default function ProjectIdeatorStudio() {
   function clearChat() {
     setChat([]);
     setError(null);
+    setEditingUserId(null);
+    setEditDraft("");
   }
 
   function toggleChip(list: string[], value: string, setter: (v: string[]) => void) {
@@ -329,8 +371,53 @@ export default function ProjectIdeatorStudio() {
                 m.role === "user" ? (
                   <div key={m.id} className="flex justify-end">
                     <div className="max-w-[88%] rounded-2xl border px-4 py-3 text-sm shadow-sm" style={{ borderColor: "var(--border-strong)", background: "var(--text-primary)", color: "var(--bg-elevated)" }}>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide opacity-80">You</div>
-                      <div className="mt-1.5 whitespace-pre-wrap">{m.text}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide opacity-80">You</div>
+                        {editingUserId !== m.id && !loading ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingUserId(m.id);
+                              setEditDraft(m.text);
+                            }}
+                            className="text-[10px] font-semibold uppercase tracking-wide underline opacity-90 hover:opacity-100"
+                          >
+                            Edit
+                          </button>
+                        ) : null}
+                      </div>
+                      {editingUserId === m.id ? (
+                        <div className="mt-2">
+                          <textarea
+                            value={editDraft}
+                            onChange={(e) => setEditDraft(e.target.value)}
+                            rows={5}
+                            className="w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none"
+                            style={{ borderColor: "color-mix(in oklab, var(--bg-elevated) 40%, transparent)", background: "color-mix(in oklab, var(--text-primary) 92%, black)", color: "var(--bg-elevated)" }}
+                          />
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className="btn-primary px-3 py-1.5 text-xs"
+                              onClick={() => {
+                                const idx = chat.findIndex((c) => c.id === m.id);
+                                if (idx === -1) return;
+                                const t = editDraft.trim();
+                                if (!t) return;
+                                setChat((c) => [...c.slice(0, idx), { ...c[idx], text: t }]);
+                                setEditingUserId(null);
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingUserId(null)}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-1.5 whitespace-pre-wrap">{m.text}</div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -350,6 +437,8 @@ export default function ProjectIdeatorStudio() {
                         index={idx}
                         onSave={() => saveIdea(idea)}
                         onToggleFavorite={() => toggleFavorite(idea)}
+                        onSaveToActivities={() => void saveIdeaToActivities(idea)}
+                        saveToActivitiesPending={activitySavingKey === ideaKey(idea)}
                         isSaved={isSaved(idea)}
                         isFavorite={isFavorite(idea)}
                       />
@@ -370,6 +459,12 @@ export default function ProjectIdeatorStudio() {
               {error ? (
                 <div className="rounded-xl border px-3 py-2 text-sm" style={{ color: "var(--danger)", borderColor: "color-mix(in oklab, var(--danger) 35%, var(--border-soft))" }}>
                   {error}
+                </div>
+              ) : null}
+
+              {activitySaveError ? (
+                <div className="rounded-xl border px-3 py-2 text-sm" style={{ color: "var(--danger)", borderColor: "color-mix(in oklab, var(--danger) 35%, var(--border-soft))" }}>
+                  {activitySaveError}
                 </div>
               ) : null}
 

@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const studentNavItems = [
   { href: "/dashboard", label: "Home" },
+  { href: "/application-preview", label: "Preview" },
   { href: "/chat", label: "Chat" },
   { href: "/universities", label: "Universities" },
   { href: "/essays", label: "Essays" },
