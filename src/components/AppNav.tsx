@@ -34,7 +34,7 @@ export default function AppNav() {
     <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ borderColor: "var(--border-soft)", background: "color-mix(in oklab, var(--bg-elevated) 92%, transparent)" }}>
       <div className="mx-auto flex h-14 w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6">
         <Link href={brandHref} className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
-          Astra Admissions OS
+          ClutchAI
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
           <nav className="nav-pill max-w-[min(100vw-2rem,52rem)]">

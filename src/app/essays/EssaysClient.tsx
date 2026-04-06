@@ -31,6 +31,8 @@ export default function EssaysClient() {
   const [rows, setRows] = React.useState<Essay[]>([]);
   const [form, setForm] = React.useState(emptyDraft);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [savePending, setSavePending] = React.useState(false);
   const [tab, setTab] = React.useState<"common" | "university">("common");
   const [savedUniversitySlugs, setSavedUniversitySlugs] = React.useState<string[]>([]);
   const [universities, setUniversities] = React.useState<UniversityRecord[]>([]);
@@ -73,26 +75,53 @@ export default function EssaysClient() {
   const selectedPrompt = promptList.find((p) => p.id === selectedPromptId);
 
   async function save() {
+    setSaveError(null);
+    const content = form.content.trim();
+    if (!content) {
+      setSaveError("Add some essay text before saving—the library stores your draft body.");
+      return;
+    }
+    const title = form.title.trim() || "Untitled draft";
     const payload = {
       ...form,
-      content: form.content.trim(),
+      title,
+      content,
       notes: form.notes.trim() || undefined,
       draft: Number(form.draft),
     };
-    if (selected) {
-      await fetch(`/api/essays/${selected.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } else {
-      await fetch("/api/essays", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    setSavePending(true);
+    try {
+      if (selected) {
+        const res = await fetch(`/api/essays/${selected.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(err.error ?? `Save failed (${res.status})`);
+        }
+        await refresh();
+      } else {
+        const res = await fetch("/api/essays", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(err.error ?? `Save failed (${res.status})`);
+        }
+        const data = (await res.json()) as { essay: Essay };
+        await refresh();
+        setSelectedId(data.essay.id);
+        setForm((s) => ({ ...s, title: data.essay.title }));
+      }
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "Could not save essay.");
+    } finally {
+      setSavePending(false);
     }
-    await refresh();
   }
 
   React.useEffect(() => {
@@ -264,10 +293,19 @@ export default function EssaysClient() {
                 <div className="section-heading">{selected ? "Edit draft" : "New draft"}</div>
                 <div className="section-meta mt-1">Autosave on Save. Word count updates as you type.</div>
               </div>
-              <button type="button" onClick={() => void save()} className="btn-primary">
-                Save essay
+              <button type="button" onClick={() => void save()} disabled={savePending} className="btn-primary disabled:opacity-55">
+                {savePending ? "Saving…" : "Save essay"}
               </button>
             </div>
+
+            {saveError ? (
+              <div
+                className="mt-3 rounded-lg border px-3 py-2 text-sm"
+                style={{ color: "var(--danger)", borderColor: "color-mix(in oklab, var(--danger) 35%, var(--border-soft))" }}
+              >
+                {saveError}
+              </div>
+            ) : null}
 
             <div className="mt-4 space-y-3">
               <div>

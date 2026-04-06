@@ -7,7 +7,8 @@ export default function ThemeToggle() {
   const [isDark, setIsDark] = React.useState(false);
 
   React.useEffect(() => {
-    const stored = window.localStorage.getItem("astra-theme");
+    const stored =
+      window.localStorage.getItem("clutchai-theme") ?? window.localStorage.getItem("astra-theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const dark = stored === "dark" || (!stored && prefersDark);
     document.documentElement.classList.toggle("dark", dark);
@@ -18,7 +19,7 @@ export default function ThemeToggle() {
   function toggle() {
     const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
-    window.localStorage.setItem("astra-theme", next ? "dark" : "light");
+    window.localStorage.setItem("clutchai-theme", next ? "dark" : "light");
     setIsDark(next);
   }
 

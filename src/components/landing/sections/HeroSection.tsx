@@ -40,7 +40,7 @@ export function HeroSection() {
                 "radial-gradient(ellipse 80% 60% at 70% 20%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 55%), radial-gradient(ellipse 60% 50% at 20% 80%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 50%)",
             }}
           />
-          <MockDeviceFrame title="dashboard.astra.app — Admissions command center">
+          <MockDeviceFrame title="dashboard.clutchai.app — Admissions command center">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>

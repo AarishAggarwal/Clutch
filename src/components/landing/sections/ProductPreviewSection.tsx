@@ -8,7 +8,7 @@ export function ProductPreviewSection() {
           Everything you used to juggle—now one product
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--text-secondary)" }}>
-          Spreadsheets for college lists, random sites for contests, Google Docs for essays, and ad-hoc advice in threads. Astra pulls strategy and execution into a single,
+          Spreadsheets for college lists, random sites for contests, Google Docs for essays, and ad-hoc advice in threads. ClutchAI pulls strategy and execution into a single,
           structured workspace built around how admissions actually works.
         </p>
       </div>

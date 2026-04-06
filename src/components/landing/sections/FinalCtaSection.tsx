@@ -8,7 +8,7 @@ export function FinalCtaSection() {
           Ship a stronger application—with the same record you already have
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--text-secondary)" }}>
-          Astra helps you organize proof, sharpen essays, pick opportunities, and execute on a timeline. Start with your profile; the workspace builds from there.
+          ClutchAI helps you organize proof, sharpen essays, pick opportunities, and execute on a timeline. Start with your profile; the workspace builds from there.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/auth/signup?role=student" className="btn-primary px-6 py-2.5 text-sm font-medium">

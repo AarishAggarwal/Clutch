@@ -36,7 +36,7 @@ export default function LandingPage() {
 
         <footer className="mt-8 border-t pt-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            © {new Date().getFullYear()} Astra Admissions OS ·{" "}
+            © {new Date().getFullYear()} ClutchAI ·{" "}
             <Link href="/auth/login?role=student" className="underline underline-offset-2" style={{ color: "var(--text-secondary)" }}>
               Log in
             </Link>

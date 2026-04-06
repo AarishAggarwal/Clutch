@@ -8,7 +8,7 @@ import Providers from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Astra Admissions OS",
+  title: "ClutchAI",
   description:
     "Admissions workspace for essays, college discovery, competitions, projects, and counselor coordination—structured AI for serious applicants.",
 };

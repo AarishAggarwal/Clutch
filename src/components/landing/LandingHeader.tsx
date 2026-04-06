@@ -8,7 +8,7 @@ const nav = [
   { href: "#product", label: "Product" },
   { href: "#features", label: "Features" },
   { href: "#how", label: "How it works" },
-  { href: "#why", label: "Why Astra" },
+  { href: "#why", label: "Why ClutchAI" },
   { href: "#trust", label: "Trust" },
   { href: "#pricing", label: "Pricing" },
 ];
@@ -20,7 +20,7 @@ export function LandingHeader() {
     <header className="sticky top-0 z-50 border-b backdrop-blur-md" style={{ borderColor: "var(--border-soft)", background: "color-mix(in oklab, var(--bg-app) 88%, transparent)" }}>
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
-          Astra Admissions OS
+          ClutchAI
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {nav.map((item) => (

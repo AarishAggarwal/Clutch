@@ -7,7 +7,7 @@ const bodySchema = z.object({
   profile: z.record(z.string(), z.unknown()).optional(),
   mode: z.string(),
   filters: z.record(z.string(), z.unknown()).optional(),
-  ideaCount: z.number().min(1).max(7).optional().default(5),
+  ideaCount: z.coerce.number().min(1).max(7).optional().default(5),
   messages: z
     .array(
       z.object({
