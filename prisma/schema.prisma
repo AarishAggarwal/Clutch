@@ -28,6 +28,7 @@ model User {
   studentProfile StudentProfile?
   essays         Essay[]
   activities     Activity[]
+  conversations Conversation[]
 }
 
 model Account {
@@ -80,10 +81,16 @@ model EmailOtp {
 model Conversation {
   id               String            @id @default(cuid())
   title            String
+  /// essay_review | project_ideation
+  kind             String            @default("essay_review")
+  userId           String?
+  user             User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   messages         Message[]
   essaySubmissions EssaySubmission[]
+
+  @@index([userId, kind, updatedAt])
 }
 
 model Message {

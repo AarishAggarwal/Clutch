@@ -64,21 +64,29 @@ export default function ChatShell() {
   }
 
   async function loadConversations() {
-    const res = await fetch("/api/conversations", { method: "GET" });
+    const res = await fetch("/api/conversations", { method: "GET", credentials: "include" });
     if (!res.ok) throw new Error("Failed to load conversations");
     const data = (await res.json()) as { conversations: ConversationListItem[] };
     return data.conversations;
   }
 
   async function loadMessages(conversationId: string) {
-    const res = await fetch(`/api/conversations/${conversationId}/messages`, { method: "GET" });
+    const res = await fetch(`/api/conversations/${conversationId}/messages`, {
+      method: "GET",
+      credentials: "include",
+    });
     if (!res.ok) throw new Error("Failed to load messages");
     const data = (await res.json()) as { messages: ChatMessage[] };
     return data.messages;
   }
 
   async function createNewConversation() {
-    const res = await fetch("/api/conversations/new", { method: "POST" });
+    const res = await fetch("/api/conversations/new", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
     if (!res.ok) throw new Error("Failed to create conversation");
     const data = (await res.json()) as { conversationId: string };
     return data.conversationId;
@@ -90,6 +98,10 @@ export default function ChatShell() {
       const targetId = conversationIdFromQuery ?? convs[0]?.id ?? null;
       setConversations(convs);
       setActiveConversationId(targetId);
+
+      if (targetId && !conversationIdFromQuery) {
+        router.replace(`/chat?conversationId=${encodeURIComponent(targetId)}`);
+      }
 
       if (targetId) {
         const msgs = await loadMessages(targetId);
@@ -132,7 +144,9 @@ export default function ChatShell() {
     return () => clearStatusTimer();
   }, []);
 
-  const headerTitle = getFallbackConversationTitle(activeConversationId);
+  const headerTitle =
+    conversations.find((c) => c.id === activeConversationId)?.title ??
+    getFallbackConversationTitle(activeConversationId);
   const selectedSupplementalUniversity = supplementalUniversities.find((u) => u.id === supplementalUniversityId);
   const selectedSupplementalPrompt = selectedSupplementalUniversity?.prompts.find(
     (p) => p.id === supplementalPromptId,
@@ -207,6 +221,7 @@ export default function ChatShell() {
     try {
       const evalRes = await fetch(`/api/conversations/${activeConversationId}/evaluate`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           essayType,

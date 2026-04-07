@@ -1,4 +1,9 @@
 import OpenAI from "openai";
+import {
+  chatCompletionCreateFlexible,
+  chatCompletionMessageText,
+  extractResponsesOutputText,
+} from "@/server/openaiResponseText";
 
 const SYSTEM_PROMPT = `You are a creative project ideation partner for ambitious high school students building extracurricular projects, inventions, research, nonprofits, or art.
 
@@ -31,21 +36,31 @@ export async function generateProjectIdeationReply(history: IdeationTurn[]): Pro
   }
 
   const client = new OpenAI({ apiKey });
-  const res = await client.responses.create({
-    model: modelName,
-    input: [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...history.map((h) => ({ role: h.role, content: h.content })),
-    ],
-    max_output_tokens: 1800,
-    text: {
-      verbosity: "low",
-    },
-  });
+  const input = [
+    { role: "system" as const, content: SYSTEM_PROMPT },
+    ...history.map((h) => ({ role: h.role, content: h.content })),
+  ];
 
-  const text = ((res as any).output_text as string | undefined)?.trim();
-  if (!text) {
-    return { text: "I couldn’t generate a reply—try sending a shorter message.", modelName };
+  try {
+    const res = await client.responses.create({
+      model: modelName,
+      input,
+      max_output_tokens: 1800,
+      text: { verbosity: "medium" },
+    });
+    const text = extractResponsesOutputText(res);
+    if (text) return { text, modelName };
+  } catch {
+    // fall through to Chat Completions
   }
-  return { text, modelName };
+
+  const chatRes = await chatCompletionCreateFlexible(client, {
+    model: modelName,
+    messages: input.map((m) => ({ role: m.role, content: m.content })),
+    max_completion_tokens: 1800,
+  });
+  const text = chatCompletionMessageText(chatRes.choices[0]?.message);
+  if (text) return { text, modelName };
+
+  return { text: "I couldn’t generate a reply—try sending a shorter message.", modelName };
 }

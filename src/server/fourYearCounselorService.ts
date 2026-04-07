@@ -147,7 +147,7 @@ export async function getCounselorReply(params: {
       { role: "system", content: buildSystemPrompt() },
       { role: "user", content: userPayload },
     ],
-    text: { verbosity: "low" },
+    text: { verbosity: "medium" },
     max_output_tokens: 1800,
   });
 

@@ -44,9 +44,10 @@ function StudentSignupWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; details?: string };
       if (!res.ok) {
-        setError(data.error ?? "Could not start sign up.");
+        const hint = data.details?.trim() ? `\n\n${data.details.trim()}` : "";
+        setError((data.error ?? "Could not start sign up.") + hint);
         return;
       }
       setStep("otp");
@@ -107,9 +108,10 @@ function StudentSignupWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; details?: string };
       if (!res.ok) {
-        setError(data.error ?? "Could not resend code.");
+        const hint = data.details?.trim() ? `\n\n${data.details.trim()}` : "";
+        setError((data.error ?? "Could not resend code.") + hint);
         return;
       }
     } finally {

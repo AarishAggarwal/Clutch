@@ -33,5 +33,6 @@ export const config = {
     "/documents/:path*",
     "/counselor/:path*",
     "/auth/complete-profile",
+    "/projects/:path*",
   ],
 };

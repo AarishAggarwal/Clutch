@@ -64,10 +64,12 @@ export async function POST(req: Request) {
     await sendSignupOtpEmail(email, code);
   } catch (e) {
     console.error("[register] Resend error:", e);
+    const details = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
       {
         error:
-          "Could not send verification email. Confirm RESEND_API_KEY and AUTH_EMAIL_FROM (verified domain on Resend).",
+          "Could not send verification email. In production, add RESEND_API_KEY to the host and verify a sending domain in Resend; use AUTH_EMAIL_FROM from that domain (not the test inbox-only sender).",
+        details,
       },
       { status: 502 },
     );

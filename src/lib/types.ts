@@ -35,7 +35,8 @@ export type ChatMessageType =
   | "essay_submission"
   | "fused_result"
   | "model_result"
-  | "meta";
+  | "meta"
+  | "ideator_assistant";
 
 export type ModelProvider = "openai" | "deepseek";
 

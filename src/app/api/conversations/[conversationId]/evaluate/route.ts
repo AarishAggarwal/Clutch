@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { evaluateEssayWithProviders } from "@/server/providerOrchestrator";
-import { saveEssayEvaluation } from "@/server/chatPersistence";
+import { CONVERSATION_KIND_ESSAY, getConversationForUser, saveEssayEvaluation } from "@/server/chatPersistence";
 import { evaluateEssayRequestSchema } from "@/lib/chatSchemas";
 import { prisma } from "@/server/prisma";
 import { authOptions } from "@/lib/auth";
@@ -44,6 +44,14 @@ export async function POST(
     const { conversationId } = ctx.params;
     if (!conversationId) {
       return NextResponse.json({ error: "Missing conversationId." }, { status: 400 });
+    }
+
+    const conv = await getConversationForUser(conversationId, userId);
+    if (!conv) {
+      return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+    }
+    if (conv.kind !== CONVERSATION_KIND_ESSAY) {
+      return NextResponse.json({ error: "This thread is not an essay review chat." }, { status: 400 });
     }
 
     const body = await req.json();
@@ -117,6 +125,7 @@ export async function POST(
 
     await saveEssayEvaluation({
       conversationId,
+      userId,
       essayType: parsed.data.essayType,
       essayTitle: parsed.data.title,
       essayContent: essayText,

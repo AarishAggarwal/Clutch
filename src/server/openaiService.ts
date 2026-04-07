@@ -76,7 +76,7 @@ export async function evaluateEssayWithOpenAI(params: {
       ],
       max_output_tokens: 2800,
       text: {
-        verbosity: "low",
+        verbosity: "medium",
       },
     }),
     30000,

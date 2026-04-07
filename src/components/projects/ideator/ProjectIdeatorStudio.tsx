@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import IdeaCard from "@/components/projects/ideator/IdeaCard";
+import type { ConversationListItem } from "@/components/chat/Sidebar";
 import {
   IDEA_MODES,
   defaultIdeaFilters,
   defaultIntakeProfile,
+  projectIdeaSchema,
   type IdeaFilters,
   type IdeaModeId,
   type IntakeProfile,
@@ -22,8 +25,51 @@ type ChatEntry = {
   createdAt: string;
 };
 
-const CHAT_STORAGE = "projectIdeator:chat:v1";
 const SAVED_STORAGE = "projectIdeator:savedIdeas:v1";
+const IDEATOR_ACTIVE_KEY = "projectIdeator:activeConversationId";
+const IDEATOR_KIND = "project_ideator";
+
+type ApiMessageRow = {
+  id: string;
+  role: string;
+  messageType: string;
+  content: string;
+  createdAt: string;
+};
+
+function parseIdeatorMessages(rows: ApiMessageRow[]): ChatEntry[] {
+  const out: ChatEntry[] = [];
+  for (const m of rows) {
+    const createdAt =
+      typeof m.createdAt === "string" ? m.createdAt : new Date(m.createdAt as unknown as string).toISOString();
+    if (m.role === "user" && m.messageType === "plain_text") {
+      out.push({ id: m.id, role: "user", text: m.content, createdAt });
+    }
+    if (m.role === "assistant" && m.messageType === "ideator_assistant") {
+      try {
+        const p = JSON.parse(m.content) as { assistantReply?: string; ideas?: unknown[]; modelName?: string };
+        const ideas: ProjectIdea[] = [];
+        if (Array.isArray(p.ideas)) {
+          for (const item of p.ideas) {
+            const parsed = projectIdeaSchema.safeParse(item);
+            if (parsed.success) ideas.push(parsed.data);
+          }
+        }
+        out.push({
+          id: m.id,
+          role: "assistant",
+          text: p.assistantReply ?? "",
+          ideas,
+          modelName: p.modelName,
+          createdAt,
+        });
+      } catch {
+        /* ignore malformed assistant payload */
+      }
+    }
+  }
+  return out;
+}
 
 const PROJECT_TYPES = [
   "research",
@@ -70,6 +116,10 @@ function loadJSON<T>(key: string, fallback: T): T {
 }
 
 export default function ProjectIdeatorStudio() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const conversationIdFromUrl = searchParams.get("conversationId");
+
   const [profile, setProfile] = React.useState<IntakeProfile>(defaultIntakeProfile);
   const [filters, setFilters] = React.useState<IdeaFilters>(defaultIdeaFilters);
   const [mode, setMode] = React.useState<IdeaModeId>("elite_admissions");
@@ -77,6 +127,9 @@ export default function ProjectIdeatorStudio() {
   const [input, setInput] = React.useState("");
   const [chat, setChat] = React.useState<ChatEntry[]>([]);
   const [savedIdeas, setSavedIdeas] = React.useState<SavedIdeaEntry[]>([]);
+  const [ideatorConversations, setIdeatorConversations] = React.useState<ConversationListItem[]>([]);
+  const [serverConversationId, setServerConversationId] = React.useState<string | null>(null);
+  const [bootLoading, setBootLoading] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showIntake, setShowIntake] = React.useState(true);
@@ -122,18 +175,114 @@ export default function ProjectIdeatorStudio() {
     }
   }
 
+  async function refreshIdeatorList() {
+    const listRes = await fetch(`/api/conversations?kind=${encodeURIComponent(IDEATOR_KIND)}`, {
+      credentials: "include",
+    });
+    if (!listRes.ok) return;
+    const listData = (await listRes.json()) as { conversations: ConversationListItem[] };
+    setIdeatorConversations(listData.conversations ?? []);
+  }
+
+  async function openIdeatorConversation(id: string) {
+    setError(null);
+    setEditingUserId(null);
+    setEditDraft("");
+    setServerConversationId(id);
+    if (typeof window !== "undefined") localStorage.setItem(IDEATOR_ACTIVE_KEY, id);
+    router.replace(`/projects/chatbot?conversationId=${encodeURIComponent(id)}`);
+    const msgRes = await fetch(`/api/conversations/${encodeURIComponent(id)}/messages`, { credentials: "include" });
+    if (msgRes.ok) {
+      const msgData = (await msgRes.json()) as { messages: ApiMessageRow[] };
+      setChat(parseIdeatorMessages(msgData.messages ?? []));
+    }
+  }
+
+  async function startNewIdeatorThread() {
+    setError(null);
+    setEditingUserId(null);
+    setEditDraft("");
+    const res = await fetch("/api/conversations/new", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: IDEATOR_KIND }),
+    });
+    if (!res.ok) {
+      setError("Could not start a new chat. Try again.");
+      return;
+    }
+    const data = (await res.json()) as { conversationId: string };
+    setChat([]);
+    setServerConversationId(data.conversationId);
+    if (typeof window !== "undefined") localStorage.setItem(IDEATOR_ACTIVE_KEY, data.conversationId);
+    router.replace(`/projects/chatbot?conversationId=${encodeURIComponent(data.conversationId)}`);
+    await refreshIdeatorList();
+  }
+
   React.useEffect(() => {
-    setChat(loadJSON<ChatEntry[]>(CHAT_STORAGE, []));
     setSavedIdeas(loadJSON<SavedIdeaEntry[]>(SAVED_STORAGE, []));
   }, []);
 
   React.useEffect(() => {
-    localStorage.setItem(CHAT_STORAGE, JSON.stringify(chat));
-  }, [chat]);
-
-  React.useEffect(() => {
     localStorage.setItem(SAVED_STORAGE, JSON.stringify(savedIdeas));
   }, [savedIdeas]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setBootLoading(true);
+      try {
+        const listRes = await fetch(`/api/conversations?kind=${encodeURIComponent(IDEATOR_KIND)}`, {
+          credentials: "include",
+        });
+        if (!listRes.ok) throw new Error("list");
+        const listData = (await listRes.json()) as { conversations: ConversationListItem[] };
+        if (cancelled) return;
+        const convs = listData.conversations ?? [];
+        setIdeatorConversations(convs);
+
+        const fromStorage =
+          typeof window !== "undefined" ? window.localStorage.getItem(IDEATOR_ACTIVE_KEY) : null;
+        const pick =
+          conversationIdFromUrl && convs.some((c) => c.id === conversationIdFromUrl)
+            ? conversationIdFromUrl
+            : fromStorage && convs.some((c) => c.id === fromStorage)
+              ? fromStorage
+              : convs[0]?.id ?? null;
+
+        setServerConversationId(pick);
+        if (pick && typeof window !== "undefined") {
+          localStorage.setItem(IDEATOR_ACTIVE_KEY, pick);
+        }
+        if (pick) {
+          const msgRes = await fetch(`/api/conversations/${encodeURIComponent(pick)}/messages`, {
+            credentials: "include",
+          });
+          if (cancelled) return;
+          if (msgRes.ok) {
+            const msgData = (await msgRes.json()) as { messages: ApiMessageRow[] };
+            setChat(parseIdeatorMessages(msgData.messages ?? []));
+          } else {
+            setChat([]);
+          }
+        } else {
+          setChat([]);
+        }
+      } catch {
+        if (!cancelled) {
+          setIdeatorConversations([]);
+          setServerConversationId(null);
+          setChat([]);
+        }
+      } finally {
+        if (!cancelled) setBootLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationIdFromUrl]);
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -156,8 +305,10 @@ export default function ProjectIdeatorStudio() {
     try {
       const res = await fetch("/api/project-ideator/generate", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: serverConversationId ?? undefined,
           profile,
           filters,
           mode,
@@ -171,31 +322,31 @@ export default function ProjectIdeatorStudio() {
         throw new Error(payload.details ?? payload.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as {
+        conversationId: string;
         assistantReply: string;
         ideas: ProjectIdea[];
         modelName: string;
       };
-      const aiMsg: ChatEntry = {
-        id: `a-${Date.now()}`,
-        role: "assistant",
-        text: data.assistantReply,
-        ideas: data.ideas ?? [],
-        modelName: data.modelName,
-        createdAt: new Date().toISOString(),
-      };
-      setChat((c) => [...c, aiMsg]);
+      setServerConversationId(data.conversationId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(IDEATOR_ACTIVE_KEY, data.conversationId);
+      }
+      router.replace(`/projects/chatbot?conversationId=${encodeURIComponent(data.conversationId)}`);
+
+      const msgRes = await fetch(`/api/conversations/${encodeURIComponent(data.conversationId)}/messages`, {
+        credentials: "include",
+      });
+      if (msgRes.ok) {
+        const msgData = (await msgRes.json()) as { messages: ApiMessageRow[] };
+        setChat(parseIdeatorMessages(msgData.messages ?? []));
+      }
+      await refreshIdeatorList();
     } catch (e: any) {
+      setChat((c) => c.filter((x) => x.id !== userMsg.id));
       setError(String(e?.message ?? e));
     } finally {
       setLoading(false);
     }
-  }
-
-  function clearChat() {
-    setChat([]);
-    setError(null);
-    setEditingUserId(null);
-    setEditDraft("");
   }
 
   function toggleChip(list: string[], value: string, setter: (v: string[]) => void) {
@@ -243,14 +394,84 @@ export default function ProjectIdeatorStudio() {
             <button type="button" onClick={() => setShowIntake((v) => !v)} className="btn-secondary text-sm">
               {showIntake ? "Hide intake" : "Show intake"}
             </button>
-            <button type="button" onClick={clearChat} className="btn-secondary text-sm">
+            <button type="button" onClick={() => void startNewIdeatorThread()} className="btn-secondary text-sm">
               New thread
             </button>
           </div>
         </div>
+        <div className="border-b px-4 py-2 sm:hidden" style={{ borderColor: "var(--border-soft)" }}>
+          <label className="field-label">Chat history</label>
+          <select
+            className="input-base mt-1 w-full text-sm"
+            value={serverConversationId ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) return;
+              void openIdeatorConversation(v);
+            }}
+          >
+            {ideatorConversations.length === 0 ? (
+              <option value="">No saved chats yet</option>
+            ) : (
+              ideatorConversations.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[20rem_1fr_20rem]">
+      <div
+        className={[
+          "grid min-h-0 flex-1 gap-0",
+          showIntake
+            ? "lg:grid-cols-[12.5rem_minmax(17rem,20rem)_minmax(0,1fr)_minmax(16rem,20rem)]"
+            : "lg:grid-cols-[12.5rem_minmax(0,1fr)_minmax(16rem,20rem)]",
+        ].join(" ")}
+      >
+        <aside
+          className="hidden min-h-0 flex-col border-r lg:flex"
+          style={{ borderColor: "var(--border-soft)", background: "var(--bg-elevated)" }}
+        >
+          <div className="border-b p-3" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="text-xs font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+              Saved chats
+            </div>
+            <p className="section-meta mt-0.5 text-[11px] leading-snug">Reload-safe · switch anytime</p>
+          </div>
+          <div className="flex-1 space-y-1 overflow-y-auto p-2">
+            {bootLoading ? (
+              <p className="section-meta px-1 text-xs">Loading…</p>
+            ) : ideatorConversations.length === 0 ? (
+              <p className="section-meta px-1 text-xs">Your threads appear here after the first reply.</p>
+            ) : (
+              ideatorConversations.map((c) => {
+                const active = c.id === serverConversationId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => void openIdeatorConversation(c.id)}
+                    className={["w-full rounded-lg border px-2.5 py-2 text-left text-xs transition", active ? "border-[var(--accent)]" : ""].join(
+                      " ",
+                    )}
+                    style={{
+                      borderColor: active ? "var(--accent)" : "var(--border-soft)",
+                      background: active ? "color-mix(in oklab, var(--accent) 10%, transparent)" : "var(--bg-muted)",
+                    }}
+                  >
+                    <div className="line-clamp-2 font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {c.title}
+                    </div>
+                    <div className="section-meta mt-0.5 line-clamp-2">{c.lastMessagePreview}</div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </aside>
         {showIntake ? (
           <aside className="overflow-y-auto border-r p-4 sm:p-5" style={{ borderColor: "var(--border-soft)", background: "var(--bg-elevated)" }}>
             <div className="space-y-3">
@@ -321,6 +542,13 @@ export default function ProjectIdeatorStudio() {
         ) : null}
 
         <main className="flex min-h-0 flex-col overflow-hidden" style={{ background: "var(--bg-app)" }}>
+          {bootLoading ? (
+            <div className="flex flex-1 items-center justify-center p-8">
+              <p className="section-meta">Loading your conversation…</p>
+            </div>
+          ) : null}
+          {!bootLoading ? (
+            <>
           <div className="border-b px-4 py-3 sm:px-6" style={{ borderColor: "var(--border-soft)" }}>
             <div className="flex flex-wrap items-end gap-3">
               <div>
@@ -496,6 +724,8 @@ export default function ProjectIdeatorStudio() {
               </div>
             </div>
           </div>
+            </>
+          ) : null}
         </main>
 
         <aside className="hidden overflow-y-auto border-l p-4 lg:block" style={{ borderColor: "var(--border-soft)", background: "var(--bg-elevated)" }}>

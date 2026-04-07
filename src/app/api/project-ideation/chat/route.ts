@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import {
   appendChatMessage,
+  CONVERSATION_KIND_PROJECT_IDEATION,
   createProjectIdeationConversation,
+  getConversationForUser,
   getConversationMessages,
 } from "@/server/chatPersistence";
 import { generateProjectIdeationReply } from "@/server/projectIdeationService";
+import { authOptions } from "@/lib/auth";
 
 function buildIdeationHistory(
   rows: { role: string; messageType: string; content: string }[],
@@ -21,6 +25,12 @@ function buildIdeationHistory(
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+
     const body = (await req.json()) as { conversationId?: string | null; text?: string };
     const text = body.text?.trim() ?? "";
     if (!text) {
@@ -29,8 +39,16 @@ export async function POST(req: Request) {
 
     let conversationId = body.conversationId?.trim() || null;
     if (!conversationId) {
-      const created = await createProjectIdeationConversation();
+      const created = await createProjectIdeationConversation({ userId });
       conversationId = created.conversationId;
+    } else {
+      const conv = await getConversationForUser(conversationId, userId);
+      if (!conv) {
+        return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+      }
+      if (conv.kind !== CONVERSATION_KIND_PROJECT_IDEATION) {
+        return NextResponse.json({ error: "Not a project ideation thread." }, { status: 400 });
+      }
     }
 
     await appendChatMessage({

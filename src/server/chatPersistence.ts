@@ -1,6 +1,22 @@
+import type { Prisma } from "@prisma/client";
 import type { EssayType, ChatMessageRole, ChatMessageType, FusedEvaluationMode, ModelProvider } from "@/lib/types";
 import type { ModelEvaluationJson } from "@/lib/evaluationSchema";
 import { prisma } from "@/server/prisma";
+
+const conversationForUserSelect = {
+  id: true,
+  kind: true,
+  title: true,
+} as const satisfies Prisma.ConversationSelect;
+
+export type ConversationForUser = Prisma.ConversationGetPayload<{
+  select: typeof conversationForUserSelect;
+}>;
+
+/** Stored on `Conversation.kind` */
+export const CONVERSATION_KIND_ESSAY = "essay_review";
+export const CONVERSATION_KIND_PROJECT_IDEATION = "project_ideation";
+export const CONVERSATION_KIND_PROJECT_IDEATOR = "project_ideator";
 
 export type ChatMessageRecord = {
   id: string;
@@ -10,10 +26,10 @@ export type ChatMessageRecord = {
   createdAt: Date;
 };
 
-export async function createConversation(params?: { title?: string }) {
-  const title = params?.title?.trim() ? params.title!.trim() : "New essay review";
+export async function createConversation(params: { userId: string; title?: string }) {
+  const title = params.title?.trim() ? params.title.trim() : "New essay review";
   const conversation = await prisma.conversation.create({
-    data: { title },
+    data: { title, userId: params.userId, kind: CONVERSATION_KIND_ESSAY },
   });
 
   const systemGreeting =
@@ -32,9 +48,9 @@ export async function createConversation(params?: { title?: string }) {
   return { conversationId: conversation.id };
 }
 
-export async function createProjectIdeationConversation() {
+export async function createProjectIdeationConversation(params: { userId: string }) {
   const conversation = await prisma.conversation.create({
-    data: { title: "Project ideation" },
+    data: { title: "Project ideation", userId: params.userId, kind: CONVERSATION_KIND_PROJECT_IDEATION },
   });
 
   const greeting =
@@ -49,6 +65,17 @@ export async function createProjectIdeationConversation() {
     },
   });
 
+  return { conversationId: conversation.id };
+}
+
+export async function createProjectIdeatorConversation(params: { userId: string }) {
+  const conversation = await prisma.conversation.create({
+    data: {
+      title: "Project ideator",
+      userId: params.userId,
+      kind: CONVERSATION_KIND_PROJECT_IDEATOR,
+    },
+  });
   return { conversationId: conversation.id };
 }
 
@@ -72,8 +99,9 @@ export async function appendChatMessage(params: {
   });
 }
 
-export async function listConversations() {
+export async function listConversations(params: { userId: string; kind: string }) {
   const conversations = await prisma.conversation.findMany({
+    where: { userId: params.userId, kind: params.kind },
     orderBy: { updatedAt: "desc" },
     include: {
       messages: {
@@ -96,6 +124,16 @@ export async function listConversations() {
   });
 }
 
+export async function getConversationForUser(
+  conversationId: string,
+  userId: string,
+): Promise<ConversationForUser | null> {
+  return prisma.conversation.findFirst({
+    where: { id: conversationId, userId },
+    select: conversationForUserSelect,
+  });
+}
+
 export async function getConversationMessages(conversationId: string) {
   const messages = await prisma.message.findMany({
     where: { conversationId },
@@ -108,6 +146,7 @@ export async function getConversationMessages(conversationId: string) {
 
 export async function saveEssayEvaluation(params: {
   conversationId: string;
+  userId?: string;
   essayType: EssayType;
   essayTitle?: string;
   essayContent: string;
@@ -159,6 +198,7 @@ export async function saveEssayEvaluation(params: {
   const workspaceWordCount = params.essayContent.trim().split(/\s+/).filter(Boolean).length;
   await prisma.essay.create({
     data: {
+      userId: params.userId,
       title: workspaceTitle,
       essayType: params.essayType,
       content: params.essayContent,
