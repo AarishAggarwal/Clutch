@@ -37,8 +37,10 @@ export function buildEssayEvaluationPrompts(params: {
     cycleYear: string;
   };
   activitiesContext?: string;
+  /** Admitted-student essay corpus: in-context calibration (not model fine-tuning). */
+  referenceCorpus?: string;
 }) {
-  const { essayType, essayText, supplementalContext, activitiesContext } = params;
+  const { essayType, essayText, supplementalContext, activitiesContext, referenceCorpus } = params;
 
   const system = [
     "You are an elite, critical college admissions reviewer.",
@@ -46,6 +48,13 @@ export function buildEssayEvaluationPrompts(params: {
     "Be critical where the evidence is weak. Prefer concrete, verifiable feedback.",
     "When relevant, use the student's saved activities to suggest stronger specificity, credibility, and evidence in revisions.",
     "Do not fabricate activity facts. Only reference activities explicitly provided in context.",
+    ...(referenceCorpus
+      ? [
+          "A reference corpus of essays that resulted in admission is included below. Use it only as a qualitative bar for structure, voice, specificity, and depth—never to copy topics or phrasing.",
+          "Compare the draft under review to these exemplars when judging rubric dimensions; acknowledge when the draft meets or falls short of that bar.",
+          "Do not paste long excerpts from the reference corpus inside your JSON output; describe patterns and gaps in your own words.",
+        ]
+      : []),
     "You must return ONLY valid JSON matching the required schema.",
     "Do not include any markdown, code fences, or commentary outside the JSON.",
   ].join("\n");
@@ -63,6 +72,17 @@ export function buildEssayEvaluationPrompts(params: {
           "",
           "Student saved activities context (use only when relevant):",
           activitiesContext,
+        ]
+      : []),
+    ...(referenceCorpus
+      ? [
+          "",
+          "### Reference corpus (admitted-student essays — calibration set)",
+          "These samples are from successful applications. Treat them as a benchmark for what strong execution can look like, alongside general admissions standards—not as the only valid style or content.",
+          "",
+          referenceCorpus,
+          "",
+          "---",
         ]
       : []),
     "",

@@ -3,6 +3,7 @@ import type { EssayType } from "@/lib/types";
 import type { ModelEvaluationJson } from "@/lib/evaluationSchema";
 import { modelEvaluationJsonSchema } from "@/lib/evaluationSchema";
 import { buildEssayEvaluationPrompts } from "@/lib/promptTemplates";
+import { getAcceptedEssaysReferenceText } from "@/server/acceptedEssaysReference";
 
 function extractJsonObject(text: string): string {
   const cleaned = text
@@ -60,11 +61,13 @@ export async function evaluateEssayWithOpenAI(params: {
   const modelName = process.env.OPENAI_EVAL_MODEL ?? "gpt-4o-mini";
 
   const client = new OpenAI({ apiKey });
+  const referenceCorpus = getAcceptedEssaysReferenceText();
   const { system, user } = buildEssayEvaluationPrompts({
     essayType: params.essayType,
     essayText: params.essayText,
     supplementalContext: params.supplementalContext,
     activitiesContext: params.activitiesContext,
+    referenceCorpus,
   });
 
   const response = await withTimeout(

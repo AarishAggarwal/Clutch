@@ -2,6 +2,7 @@ import type { EssayType } from "@/lib/types";
 import type { ModelEvaluationJson } from "@/lib/evaluationSchema";
 import { modelEvaluationJsonSchema } from "@/lib/evaluationSchema";
 import { buildEssayEvaluationPrompts } from "@/lib/promptTemplates";
+import { getAcceptedEssaysReferenceText } from "@/server/acceptedEssaysReference";
 
 function extractJsonObject(text: string): string {
   const cleaned = text
@@ -61,11 +62,13 @@ export async function evaluateEssayWithClaude(params: {
   const baseURL = process.env.ANTHROPIC_BASE_URL || "https://api.deepseek.com/v1";
   const modelName = process.env.ANTHROPIC_EVAL_MODEL || "deepseek-chat";
 
+  const referenceCorpus = getAcceptedEssaysReferenceText();
   const { system, user } = buildEssayEvaluationPrompts({
     essayType: params.essayType,
     essayText: params.essayText,
     supplementalContext: params.supplementalContext,
     activitiesContext: params.activitiesContext,
+    referenceCorpus,
   });
 
   const body = {

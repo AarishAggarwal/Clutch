@@ -15,7 +15,8 @@
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:delete-all-users": "node scripts/delete-all-users.mjs",
-    "db:sync-universities-api": "dotenv -e .env.local -- node node_modules/tsx/dist/cli.mjs scripts/sync-universities-api.ts"
+    "db:sync-universities-api": "dotenv -e .env.local -- node node_modules/tsx/dist/cli.mjs scripts/sync-universities-api.ts",
+    "extract:accepted-essays": "node scripts/extract-accepted-essays-pdf.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -40,6 +41,7 @@
     "dotenv-cli": "^8.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
+    "pdf-parse": "^1.1.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.2",
