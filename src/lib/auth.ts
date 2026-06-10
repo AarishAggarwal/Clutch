@@ -12,10 +12,12 @@ const providers: NextAuthOptions["providers"] = [
     credentials: {
       email: { label: "Email", type: "email" },
       password: { label: "Password", type: "password" },
+      expectedRole: { label: "Expected Role", type: "text" },
     },
     async authorize(credentials) {
       const email = credentials?.email?.toLowerCase().trim();
       const password = credentials?.password;
+      const expectedRole = credentials?.expectedRole?.trim();
       if (!email || !password) return null;
 
       const user = await prisma.user.findUnique({ where: { email } });
@@ -23,6 +25,8 @@ const providers: NextAuthOptions["providers"] = [
 
       const ok = await bcrypt.compare(password, user.passwordHash);
       if (!ok) return null;
+
+      if (expectedRole && user.role !== expectedRole) return null;
 
       return {
         id: user.id,
@@ -82,6 +86,11 @@ export const authOptions: NextAuthOptions = {
   events: {
     async createUser({ user }) {
       if (!user.id) return;
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      });
+      if (dbUser?.role !== "student") return;
       await prisma.studentProfile.upsert({
         where: { userId: user.id },
         create: {

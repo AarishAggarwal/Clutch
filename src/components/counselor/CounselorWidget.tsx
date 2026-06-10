@@ -33,8 +33,15 @@ export default function CounselorWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, loading, open]);
 
-  // Hide on landing + project workspace to avoid overlap/clutter.
-  if (pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/projects")) return null;
+  // Hide on landing, auth, counselor workspace, and project workspace.
+  if (
+    pathname === "/" ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/projects") ||
+    pathname.startsWith("/counselor")
+  ) {
+    return null;
+  }
 
   async function send() {
     const text = input.trim();

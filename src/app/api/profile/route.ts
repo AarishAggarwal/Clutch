@@ -10,6 +10,9 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (session.user.role === "counselor") {
+    return NextResponse.json({ error: "Counselor accounts do not have a student profile." }, { status: 403 });
+  }
 
   let profile = await prisma.studentProfile.findUnique({
     where: { userId: session.user.id },
@@ -31,6 +34,9 @@ export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (session.user.role === "counselor") {
+    return NextResponse.json({ error: "Counselor accounts do not have a student profile." }, { status: 403 });
   }
 
   const body = await req.json();

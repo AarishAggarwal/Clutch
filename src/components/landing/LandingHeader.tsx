@@ -19,8 +19,8 @@ export function LandingHeader() {
   return (
     <header className="sticky top-0 z-50 border-b backdrop-blur-md" style={{ borderColor: "var(--border-soft)", background: "color-mix(in oklab, var(--bg-app) 88%, transparent)" }}>
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
-          ClutchAI
+        <Link href="/" className="font-display text-lg font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+          Clutch
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {nav.map((item) => (

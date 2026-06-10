@@ -8,6 +8,7 @@ import { sendSignupOtpEmail } from "@/server/resendOtp";
 const bodySchema = z.object({
   email: z.string().email().max(320),
   password: z.string().min(8).max(128),
+  role: z.enum(["student", "counselor"]).optional().default("student"),
 });
 
 export async function POST(req: Request) {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   }
 
   const email = parsed.data.email.toLowerCase().trim();
-  const { password } = parsed.data;
+  const { password, role } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing?.emailVerified) {
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     await prisma.emailOtp.deleteMany({ where: { email } });
     await prisma.user.update({
       where: { id: existing.id },
-      data: { passwordHash },
+      data: { passwordHash, role },
     });
     await prisma.emailOtp.create({ data: { email, codeHash, expiresAt } });
   } else {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
       data: {
         email,
         passwordHash,
-        role: "student",
+        role,
       },
     });
     await prisma.emailOtp.create({ data: { email, codeHash, expiresAt } });

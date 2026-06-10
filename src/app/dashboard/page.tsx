@@ -3,19 +3,31 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/server/prisma";
 import { authOptions } from "@/lib/auth";
-import HomeClock from "@/components/HomeClock";
 import HomeShortlistSection from "@/components/home/HomeShortlistSection";
 
-/** Always read fresh counts from the database (avoid static prerender at build time). */
 export const dynamic = "force-dynamic";
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
 
 function scoreToRingOffset(score: number, radius: number) {
   const circumference = 2 * Math.PI * radius;
   return circumference - (score / 100) * circumference;
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
+function ProgressBar({ label, score, color }: { label: string; score: number; color: string }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs font-medium">
+        <span className="text-text-secondary">{label}</span>
+        <span className="font-bold text-text-primary">{score}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
+      </div>
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
@@ -24,157 +36,195 @@ export default async function DashboardPage() {
     redirect("/auth/login?callbackUrl=/dashboard");
   }
   const userId = session.user.id;
+  const firstName = session.user.name?.split(" ")[0] || "there";
 
-  const [essayCount, activityCount, profile] = await Promise.all([
+  const [essayCount, activityCount, profile, recentEssays] = await Promise.all([
     prisma.essay.count({ where: { userId } }),
     prisma.activity.count({ where: { userId } }),
     prisma.studentProfile.findUnique({ where: { userId } }),
+    prisma.essay.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 5 }),
   ]);
 
   const essayScore = clamp(Math.round((essayCount / 8) * 100), 0, 100);
   const activityScore = clamp(Math.round((activityCount / 10) * 100), 0, 100);
   const gpaScore = profile?.gpa != null ? clamp(Math.round((profile.gpa / 4) * 100), 0, 100) : 0;
-  const testBase = profile?.sat != null ? Math.round((profile.sat / 1600) * 100) : profile?.act != null ? Math.round((profile.act / 36) * 100) : 0;
+  const testBase =
+    profile?.sat != null
+      ? Math.round((profile.sat / 1600) * 100)
+      : profile?.act != null
+        ? Math.round((profile.act / 36) * 100)
+        : 0;
   const gradesScore = clamp(Math.round(gpaScore * 0.7 + testBase * 0.3), 0, 100);
   const overallProgress = Math.round((essayScore + activityScore + gradesScore) / 3);
+  const pendingEssays = recentEssays.filter((e) => e.status !== "submitted" && e.status !== "approved").length;
 
-  const rings = [{ radius: 104, width: 14, color: "stroke-teal-500", score: overallProgress }];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="page-wrap">
-        <div className="mb-6 grid items-end gap-4 sm:grid-cols-3">
-          <div className="sm:col-start-1">
-            <h1 className="page-title">Admissions Command Center</h1>
-            <p className="page-subtitle">Track readiness across writing, activities, and academics with one clear operating view.</p>
+      <div className="page-wrap space-y-8">
+        <div>
+          <h1 className="display-title">
+            {greeting}, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            {pendingEssays > 0
+              ? `You have ${pendingEssays} essay${pendingEssays === 1 ? "" : "s"} in progress.`
+              : "Your application workspace is up to date."}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <div className="clutch-card">
+            <p className="text-xs font-medium uppercase tracking-wider text-text-muted">Readiness</p>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className="font-data-mono text-[32px] text-primary-container">{overallProgress}</span>
+              <span className="text-xs text-text-muted">%</span>
+            </div>
+            <div className="mt-4 h-1 overflow-hidden rounded-full bg-surface-container">
+              <div className="h-full bg-primary-container" style={{ width: `${overallProgress}%` }} />
+            </div>
           </div>
-          <div className="sm:col-start-2 sm:justify-self-center">
-            <HomeClock />
+          <div className="clutch-card">
+            <p className="text-xs font-medium uppercase tracking-wider text-text-muted">Essays saved</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="font-data-mono text-[32px] text-safety-green">{essayCount}</span>
+              <span className="text-xs text-text-muted">drafts</span>
+            </div>
           </div>
-          <div className="sm:col-start-3 sm:justify-self-end">
-            <div className="panel-muted px-4 py-3 text-right">
-              <div className="kpi-label">Readiness</div>
-              <div className="kpi-value">{overallProgress}%</div>
-              <div className="section-meta">overall application completion</div>
+          <div className="clutch-card">
+            <p className="text-xs font-medium uppercase tracking-wider text-text-muted">Activities</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="font-data-mono text-[32px] text-match-amber">{activityCount}</span>
+              <span className="text-xs text-text-muted">entries</span>
+            </div>
+          </div>
+          <div className="clutch-card">
+            <p className="text-xs font-medium uppercase tracking-wider text-text-muted">Essays pending</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="font-data-mono text-[32px] text-reach-rose">{pendingEssays}</span>
+              <span className="text-xs text-text-muted">in progress</span>
             </div>
           </div>
         </div>
 
-        <section className="panel relative p-6">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="space-y-3">
-              {[{ title: "Essays", score: essayScore, note: `${essayCount} saved drafts` }].map((d) => (
-                <div key={d.title} className="panel-muted p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                      {d.title}
-                    </div>
-                    <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                      {d.score}
-                    </div>
-                  </div>
-                  <div className="section-meta mt-1">{d.note}</div>
-                </div>
-              ))}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+          <section className="panel lg:col-span-3 p-8">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-text-primary">Application readiness</h2>
+              <Link href="/profile" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+                View details
+                <span className="material-symbols-outlined text-base">chevron_right</span>
+              </Link>
             </div>
-            <div className="flex items-center justify-center">
-              <div
-                className="relative h-[320px] w-[320px] rounded-full shadow-[0_12px_40px_-24px_rgba(16,24,40,0.18)] dark:shadow-[0_12px_40px_-24px_rgba(0,0,0,0.45)]"
-                style={{ background: "var(--bg-elevated)" }}
-              >
-                <svg viewBox="0 0 260 260" className="h-full w-full -rotate-90">
-                  {rings.map((r) => (
-                    <g key={r.radius}>
-                      <circle
-                        cx="130"
-                        cy="130"
-                        r={r.radius}
-                        fill="none"
-                        stroke="var(--border-soft)"
-                        strokeWidth={r.width}
-                      />
-                      <circle
-                        cx="130"
-                        cy="130"
-                        r={r.radius}
-                        fill="none"
-                        className={r.color}
-                        strokeWidth={r.width}
-                        strokeLinecap="round"
-                        strokeDasharray={2 * Math.PI * r.radius}
-                        strokeDashoffset={scoreToRingOffset(r.score, r.radius)}
-                      />
-                    </g>
-                  ))}
+            <div className="flex flex-col items-center gap-12 md:flex-row">
+              <div className="relative flex h-[140px] w-[140px] items-center justify-center">
+                <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                  <circle className="text-surface-container" cx="50" cy="50" fill="transparent" r="42" stroke="currentColor" strokeWidth="8" />
+                  <circle
+                    className="text-primary-container transition-all duration-700"
+                    cx="50"
+                    cy="50"
+                    fill="transparent"
+                    r="42"
+                    stroke="currentColor"
+                    strokeDasharray={2 * Math.PI * 42}
+                    strokeDashoffset={scoreToRingOffset(overallProgress, 42)}
+                    strokeLinecap="round"
+                    strokeWidth="8"
+                  />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="kpi-label tracking-[0.18em]">Application Progress</div>
-                  <div className="mt-2 text-6xl font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                    {overallProgress}
-                  </div>
-                  <div className="badge-accent mt-1 text-sm">Overall completion</div>
+                  <span className="font-data-mono text-[32px] font-bold text-text-primary">{overallProgress}</span>
+                  <span className="text-[10px] font-bold uppercase text-text-muted">Score</span>
                 </div>
               </div>
+              <div className="w-full flex-1 space-y-4">
+                <ProgressBar label="Essays" score={essayScore} color="bg-match-amber" />
+                <ProgressBar label="Activities" score={activityScore} color="bg-safety-green" />
+                <ProgressBar label="Grades & tests" score={gradesScore} color="bg-primary-container" />
+              </div>
             </div>
+          </section>
+
+          <section className="panel lg:col-span-2 p-6">
+            <h2 className="mb-6 text-lg font-semibold text-text-primary">Quick actions</h2>
             <div className="space-y-3">
-              {[
-                { title: "Activities", score: activityScore, note: `${activityCount} activity entries` },
-                {
-                  title: "Grades",
-                  score: gradesScore,
-                  note:
-                    profile?.gpa != null
-                      ? `GPA ${profile.gpa.toFixed(2)}${profile?.sat ? ` · SAT ${profile.sat}` : profile?.act ? ` · ACT ${profile.act}` : ""}`
-                      : "Add GPA/test scores in Profile",
-                },
-              ].map((d) => (
-                <div key={d.title} className="panel-muted p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                      {d.title}
-                    </div>
-                    <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                      {d.score}
-                    </div>
-                  </div>
-                  <div className="section-meta mt-1">{d.note}</div>
-                </div>
-              ))}
+              <Link href="/essays" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-white px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
+                <span className="material-symbols-outlined text-primary">description</span>
+                Start or edit an essay
+              </Link>
+              <Link href="/universities" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-white px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
+                <span className="material-symbols-outlined text-primary">account_balance</span>
+                Explore universities
+              </Link>
+              <Link href="/application-preview" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-white px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
+                <span className="material-symbols-outlined text-primary">preview</span>
+                Application preview
+              </Link>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         <HomeShortlistSection />
 
-        <div className="panel mt-6 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="section-heading">Application preview</div>
-              <p className="section-meta mt-0.5 max-w-xl">
-                Review your profile, list, activities, and essay titles in one Common App–style read-through.
-              </p>
-            </div>
-            <Link href="/application-preview" className="btn-primary px-4 py-2 text-sm">
-              Open preview
+        <section className="panel overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border-subtle p-6">
+            <h2 className="text-lg font-semibold text-text-primary">Current essay status</h2>
+            <Link href="/essays" className="btn-primary flex items-center gap-2 text-sm">
+              <span className="material-symbols-outlined text-lg">add</span>
+              New essay
             </Link>
           </div>
-        </div>
-
-        <div className="panel mt-6 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="section-heading">Progress summary</div>
-              <div className="section-meta mt-0.5 max-w-xl">
-                Progress updates as you add essays, activities, and profile grades.
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="chip chip-teal">Essays · {essayScore}%</span>
-              <span className="chip chip-amber">Activities · {activityScore}%</span>
-              <span className="chip chip-sky">Grades · {gradesScore}%</span>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border-subtle bg-surface">
+                <tr>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-text-muted">Title</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-text-muted">Type</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-text-muted">Words</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-text-muted">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-text-muted">Updated</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {recentEssays.map((e) => (
+                  <tr key={e.id} className="transition hover:bg-surface">
+                    <td className="px-6 py-4 font-medium text-text-primary">{e.title}</td>
+                    <td className="px-6 py-4 text-text-secondary">{e.essayType}</td>
+                    <td className="px-6 py-4 text-center font-data-mono text-text-primary">{e.wordCount}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={[
+                          "inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase",
+                          e.status === "submitted" || e.status === "approved"
+                            ? "bg-safety-green/10 text-safety-green"
+                            : e.status === "in_review"
+                              ? "bg-match-amber/10 text-match-amber"
+                              : "bg-reach-rose/10 text-reach-rose",
+                        ].join(" ")}
+                      >
+                        {e.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-text-muted">{new Date(e.updatedAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+                {!recentEssays.length ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-text-muted">
+                      No essays yet.{" "}
+                      <Link href="/essays" className="font-medium text-primary underline">
+                        Create your first draft
+                      </Link>
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

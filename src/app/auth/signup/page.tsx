@@ -8,8 +8,13 @@ import AuthErrorCallout from "@/components/auth/AuthErrorCallout";
 import { getAuthErrorPresentation, presentationFromSignInError } from "@/lib/authErrors";
 
 type Step = "account" | "otp";
+type SignupRole = "student" | "counselor";
 
-function StudentSignupWizard() {
+function roleLabel(role: SignupRole) {
+  return role === "counselor" ? "counselor" : "student";
+}
+
+function SignupWizard({ role }: { role: SignupRole }) {
   const router = useRouter();
   const search = useSearchParams();
   const [step, setStep] = React.useState<Step>("account");
@@ -24,6 +29,8 @@ function StudentSignupWizard() {
   const urlErrorParam = search.get("error");
   const urlAuthPresentation = React.useMemo(() => getAuthErrorPresentation(urlErrorParam), [urlErrorParam]);
   const authCallout = urlAuthPresentation ?? localAuthPresentation;
+  const isCounselor = role === "counselor";
+  const label = roleLabel(role);
 
   async function submitAccount(e: React.FormEvent) {
     e.preventDefault();
@@ -42,7 +49,7 @@ function StudentSignupWizard() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, role }),
       });
       const data = (await res.json()) as { error?: string; details?: string };
       if (!res.ok) {
@@ -75,13 +82,14 @@ function StudentSignupWizard() {
       const sign = await signIn("credentials", {
         email: email.trim().toLowerCase(),
         password,
+        expectedRole: role,
         redirect: false,
       });
       if (sign?.error) {
         setLocalAuthPresentation(presentationFromSignInError(sign.error) ?? getAuthErrorPresentation("CredentialsSignin"));
         return;
       }
-      router.push("/auth/complete-profile");
+      router.push(isCounselor ? "/counselor/onboarding" : "/auth/complete-profile");
       router.refresh();
     } finally {
       setBusy(false);
@@ -106,7 +114,7 @@ function StudentSignupWizard() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, role }),
       });
       const data = (await res.json()) as { error?: string; details?: string };
       if (!res.ok) {
@@ -122,17 +130,19 @@ function StudentSignupWizard() {
   if (step === "account") {
     return (
       <>
-        <h1 className="page-title">Create your student account</h1>
+        <h1 className="display-title text-2xl sm:text-3xl">Create your {label} account</h1>
         <p className="page-subtitle mt-1">
-          Enter your school email and a password. We will email you a one-time code to verify before you finish your profile.
+          {isCounselor
+            ? "Enter your work email and a password. We will email you a one-time code to verify before you access the counselor workspace."
+            : "Enter your school email and a password. We will email you a one-time code to verify before you finish your profile."}
         </p>
         {authCallout ? (
           <div>
             <AuthErrorCallout presentation={authCallout} />
             {authCallout.audience === "use_password_instead_of_google" ? (
               <p className="mt-3 text-sm">
-                <Link href="/auth/login?role=student" className="font-medium underline underline-offset-2" style={{ color: "var(--text-primary)" }}>
-                  Go to student login
+                <Link href={`/auth/login?role=${role}`} className="font-medium underline underline-offset-2" style={{ color: "var(--text-primary)" }}>
+                  Go to {label} login
                 </Link>{" "}
                 and sign in with your email and password.
               </p>
@@ -196,23 +206,27 @@ function StudentSignupWizard() {
           </button>
         </form>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" style={{ borderColor: "var(--border-soft)" }} />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase tracking-wide">
-            <span className="px-2" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}>
-              or
-            </span>
-          </div>
-        </div>
+        {!isCounselor ? (
+          <>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" style={{ borderColor: "var(--border-soft)" }} />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-wide">
+                <span className="px-2" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}>
+                  or
+                </span>
+              </div>
+            </div>
 
-        <button type="button" onClick={onGoogle} className="btn-secondary w-full">
-          Sign up with Google
-        </button>
-        <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-          With Google we skip the email code and take you straight to profile setup.
-        </p>
+            <button type="button" onClick={onGoogle} className="btn-secondary w-full">
+              Sign up with Google
+            </button>
+            <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+              With Google we skip the email code and take you straight to profile setup.
+            </p>
+          </>
+        ) : null}
       </>
     );
   }
@@ -249,7 +263,7 @@ function StudentSignupWizard() {
           />
         </div>
         <button type="submit" disabled={busy || otp.length !== 6} className="btn-primary w-full disabled:opacity-60">
-          {busy ? "Verifying…" : "Verify and continue"}
+          {busy ? "Verifying…" : isCounselor ? "Verify and go to counselor home" : "Verify and continue"}
         </button>
       </form>
       <button type="button" onClick={() => void resendCode()} disabled={busy} className="btn-ghost mt-4 text-sm">
@@ -266,27 +280,28 @@ function SignupContent() {
   const search = useSearchParams();
   const role = (search.get("role") ?? "student").toLowerCase();
   const isStudent = role === "student";
+  const isCounselor = role === "counselor";
 
-  if (!isStudent) {
+  if (!isStudent && !isCounselor) {
     return (
       <>
-        <h1 className="page-title">Sign up as {role === "counselor" ? "counselor" : "specialist / alumni"}</h1>
+        <h1 className="page-title">Sign up as specialist / alumni</h1>
         <p className="page-subtitle mt-2">
-          For the private beta we are onboarding <strong>students</strong> first with email verification and Google. Counselor and specialist accounts will follow in a later release.
+          Specialist and alumni accounts are coming in a later release. For now, sign up as a student or counselor.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/auth/signup?role=student" className="btn-primary">
             Sign up as student
           </Link>
-          <Link href="/auth/login?role=student" className="btn-secondary">
-            Student login
+          <Link href="/auth/signup?role=counselor" className="btn-secondary">
+            Sign up as counselor
           </Link>
         </div>
       </>
     );
   }
 
-  return <StudentSignupWizard />;
+  return <SignupWizard role={isCounselor ? "counselor" : "student"} />;
 }
 
 export default function SignupPage() {
@@ -300,21 +315,30 @@ export default function SignupPage() {
         </div>
       }
     >
-      <div className="h-full overflow-y-auto">
-        <div className="page-wrap max-w-2xl py-10">
-          <div className="mb-6 flex items-center justify-between">
-            <Link href="/" className="btn-ghost text-sm">
-              ← Back
-            </Link>
-            <Link href="/auth/login?role=student" className="btn-secondary text-sm">
-              Already have an account? Log in
-            </Link>
-          </div>
-          <section className="panel p-6 sm:p-8">
-            <SignupContent />
-          </section>
-        </div>
-      </div>
+      <SignupPageInner />
     </React.Suspense>
+  );
+}
+
+function SignupPageInner() {
+  const search = useSearchParams();
+  const role = (search.get("role") ?? "student").toLowerCase();
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="page-wrap max-w-2xl py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <Link href="/" className="btn-ghost text-sm">
+            ← Back
+          </Link>
+          <Link href={`/auth/login?role=${role}`} className="btn-secondary text-sm">
+            Already have an account? Log in
+          </Link>
+        </div>
+        <section className="panel p-6 sm:p-8">
+          <SignupContent />
+        </section>
+      </div>
+    </div>
   );
 }

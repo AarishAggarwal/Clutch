@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     select: {
       passwordHash: true,
       emailVerified: true,
+      role: true,
       accounts: { select: { provider: true } },
     },
   });
@@ -42,5 +43,5 @@ export async function POST(req: Request) {
   const hasGoogleLogin = user.accounts.some((a) => a.provider === "google");
   const hasPasswordLogin = Boolean(user.passwordHash && user.emailVerified);
 
-  return NextResponse.json({ hasPasswordLogin, hasGoogleLogin });
+  return NextResponse.json({ hasPasswordLogin, hasGoogleLogin, role: user.role });
 }

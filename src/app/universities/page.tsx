@@ -164,7 +164,7 @@ export default function UniversitiesPage() {
     <div className="h-full overflow-y-auto">
       <div className="page-wrap">
         <div className="mb-4">
-          <h1 className="page-title">College Discovery</h1>
+          <h1 className="display-title">University explorer</h1>
           <p className="page-subtitle">Search, filter, and shortlist universities with structured facts and source-backed data.</p>
           {rows.length > 0 && rows.length <= 30 ? (
             <div

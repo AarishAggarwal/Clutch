@@ -18,7 +18,7 @@ function graduationYearFromGrade(grade: Grade): number | undefined {
 
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const [fullName, setFullName] = React.useState("");
   const [schoolName, setSchoolName] = React.useState("");
   const [grade, setGrade] = React.useState<Grade>("");
@@ -32,8 +32,12 @@ export default function CompleteProfilePage() {
   React.useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/auth/login?role=student&callbackUrl=/auth/complete-profile");
+      return;
     }
-  }, [status, router]);
+    if (status === "authenticated" && session?.user?.role === "counselor") {
+      router.replace("/counselor");
+    }
+  }, [status, session?.user?.role, router]);
 
   React.useEffect(() => {
     if (status !== "authenticated") return;

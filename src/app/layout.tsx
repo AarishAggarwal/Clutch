@@ -1,16 +1,32 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import AppNav from "@/components/AppNav";
+import AppShell from "@/components/shell/AppShell";
 import CounselorWidget from "@/components/counselor/CounselorWidget";
 import Providers from "@/components/Providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "ClutchAI",
+  title: "Clutch",
   description:
-    "Admissions workspace for essays, college discovery, competitions, projects, and counselor coordination—structured AI for serious applicants.",
+    "AI-powered college admissions counselling for students, counsellors, and families.",
 };
 
 export default function RootLayout({
@@ -19,17 +35,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body
-        className={[
-          inter.className,
-          "app-surface h-full antialiased",
-        ].join(" ")}
-      >
+    <html lang="en" className={`h-full ${dmSans.variable} ${fraunces.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="app-surface h-full overflow-x-hidden font-sans antialiased">
         <Providers>
           <div className="flex h-full min-h-0 flex-col">
-            <AppNav />
-            <main className="flex-1 min-h-0">{children}</main>
+            <AppShell>{children}</AppShell>
             <CounselorWidget />
           </div>
         </Providers>

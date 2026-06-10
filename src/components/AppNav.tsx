@@ -17,8 +17,12 @@ const studentNavItems = [
   { href: "/marketplace", label: "Marketplace" },
 ];
 
-/** Counselor workspace: single home tab until full auth splits layouts */
-const counselorNavItems = [{ href: "/counselor", label: "Home" }];
+const counselorNavItems = [
+  { href: "/counselor/dashboard", label: "Dashboard" },
+  { href: "/counselor/students", label: "Students" },
+  { href: "/counselor/students/add", label: "Add student" },
+  { href: "/counselor/settings", label: "Settings" },
+];
 
 export default function AppNav() {
   const pathname = usePathname();
@@ -28,7 +32,7 @@ export default function AppNav() {
 
   const isCounselorUi = pathname.startsWith("/counselor");
   const navItems = isCounselorUi ? counselorNavItems : studentNavItems;
-  const brandHref = isCounselorUi ? "/counselor" : "/dashboard";
+  const brandHref = isCounselorUi ? "/counselor/dashboard" : "/dashboard";
 
   return (
     <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ borderColor: "var(--border-soft)", background: "color-mix(in oklab, var(--bg-elevated) 92%, transparent)" }}>
@@ -72,15 +76,13 @@ export default function AppNav() {
               </svg>
             </Link>
           ) : null}
-          {!isCounselorUi ? (
-            <button
-              type="button"
-              onClick={() => void signOut({ callbackUrl: "/" })}
-              className="btn-ghost px-2 py-1 text-xs"
-            >
-              Sign out
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => void signOut({ callbackUrl: "/" })}
+            className="btn-ghost px-2 py-1 text-xs"
+          >
+            Sign out
+          </button>
           <ThemeToggle />
         </div>
       </div>

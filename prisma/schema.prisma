@@ -23,12 +23,13 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  accounts       Account[]
-  sessions       Session[]
-  studentProfile StudentProfile?
-  essays         Essay[]
-  activities     Activity[]
-  conversations Conversation[]
+  accounts         Account[]
+  sessions         Session[]
+  studentProfile   StudentProfile?
+  counselorProfile CounselorProfile?
+  essays           Essay[]
+  activities       Activity[]
+  conversations    Conversation[]
 }
 
 model Account {
@@ -261,6 +262,73 @@ model StudentProfile {
   notes            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  counselorLinks   CounselorStudentLink[]
+  aiSummaries      AiSummary[]
+  counselorNotes   CounselorNote[]
+}
+
+model CounselorProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization        String?
+  bio                 String?
+  specialisations     String   @default("")
+  yearsExperience     Int?
+  verified            Boolean  @default(false)
+  maxStudents         Int      @default(30)
+  onboardingComplete  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  studentLinks        CounselorStudentLink[]
+  aiSummaries         AiSummary[]
+  notes               CounselorNote[]
+}
+
+model CounselorStudentLink {
+  id               String           @id @default(cuid())
+  counselorId      String
+  counselor        CounselorProfile @relation(fields: [counselorId], references: [id], onDelete: Cascade)
+  studentProfileId String
+  studentProfile   StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  status           String           @default("active")
+  notes            String?
+  linkedAt         DateTime         @default(now())
+
+  @@unique([counselorId, studentProfileId])
+  @@index([counselorId])
+  @@index([studentProfileId])
+}
+
+model AiSummary {
+  id               String            @id @default(cuid())
+  studentProfileId String
+  studentProfile   StudentProfile    @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  generatedById    String?
+  generatedBy      CounselorProfile? @relation(fields: [generatedById], references: [id], onDelete: SetNull)
+  summaryJson      String
+  createdAt        DateTime          @default(now())
+
+  @@index([studentProfileId, createdAt])
+}
+
+model CounselorNote {
+  id               String           @id @default(cuid())
+  counselorId      String
+  counselor        CounselorProfile @relation(fields: [counselorId], references: [id], onDelete: Cascade)
+  studentProfileId String
+  studentProfile   StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  content          String
+  sessionDate      DateTime?
+  durationMinutes  Int?
+  topics           String?
+  actionItems      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([counselorId, studentProfileId])
 }
 
 model Document {

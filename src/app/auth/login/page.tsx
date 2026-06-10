@@ -9,11 +9,28 @@ import { getAuthErrorPresentation } from "@/lib/authErrors";
 
 const LAST_LOGIN_EMAIL_KEY = "clutch:lastLoginEmail";
 
+type AuthRole = "student" | "counselor" | "specialist";
+
+function roleLabel(role: AuthRole) {
+  if (role === "counselor") return "Counselor";
+  if (role === "specialist") return "Specialist/Alumni";
+  return "Student";
+}
+
+function defaultCallback(role: AuthRole) {
+  if (role === "counselor") return "/counselor/dashboard";
+  if (role === "specialist") return "/specialist";
+  return "/dashboard";
+}
+
 function LoginContent() {
   const search = useSearchParams();
-  const role = (search.get("role") ?? "student").toLowerCase();
-  const callbackUrl = search.get("callbackUrl") || (role === "counselor" ? "/counselor" : role === "specialist" ? "/specialist" : "/dashboard");
-  const roleLabel = role === "counselor" ? "Counselor" : role === "specialist" ? "Specialist/Alumni" : "Student";
+  const role = (search.get("role") ?? "student").toLowerCase() as AuthRole;
+  const callbackUrl = search.get("callbackUrl") || defaultCallback(role);
+  const label = roleLabel(role);
+  const isStudent = role === "student";
+  const isCounselor = role === "counselor";
+  const loginRole = isStudent || isCounselor ? role : null;
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -21,7 +38,6 @@ function LoginContent() {
   const [credentialExtraHint, setCredentialExtraHint] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
-  // NextAuth redirects back with an `error=` query param on auth failure — map to user-facing copy (no raw codes).
   React.useEffect(() => {
     const code = search.get("error");
     setErrorPresentation(getAuthErrorPresentation(code));
@@ -40,7 +56,19 @@ function LoginContent() {
           body: JSON.stringify({ email: stored }),
         });
         if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { hasPasswordLogin?: boolean; hasGoogleLogin?: boolean };
+        const data = (await res.json()) as {
+          hasPasswordLogin?: boolean;
+          hasGoogleLogin?: boolean;
+          role?: string;
+        };
+        if (loginRole && data.role && data.role !== loginRole) {
+          const actual =
+            data.role === "counselor" ? "counselor" : data.role === "specialist" ? "specialist" : "student";
+          setCredentialExtraHint(
+            `This email is registered as a ${actual} account. Try logging in with the ${actual} login instead.`,
+          );
+          return;
+        }
         if (data.hasGoogleLogin && !data.hasPasswordLogin) {
           setCredentialExtraHint(
             "This email is set up for Google sign-in. Use “Continue with Google” below instead of your password.",
@@ -56,7 +84,7 @@ function LoginContent() {
     return () => {
       cancelled = true;
     };
-  }, [search]);
+  }, [search, loginRole]);
 
   async function onCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,16 +97,14 @@ function LoginContent() {
       } catch {
         /* ignore */
       }
-      // Let NextAuth perform the redirect so the session cookie is definitely set
-      // before middleware runs.
       const res = await signIn("credentials", {
         email: email.trim().toLowerCase(),
         password,
+        expectedRole: loginRole ?? undefined,
         redirect: true,
         callbackUrl,
       });
 
-      // If sign-in fails without full redirect, NextAuth may return `res.error` here.
       if (res?.error) {
         setErrorPresentation(getAuthErrorPresentation(res.error));
       }
@@ -90,10 +116,10 @@ function LoginContent() {
   function onGoogle() {
     setErrorPresentation(null);
     setCredentialExtraHint(null);
-    void signIn("google", { callbackUrl });
+    void signIn("google", { callbackUrl: "/auth/complete-profile" });
   }
 
-  if (role !== "student") {
+  if (!loginRole) {
     return (
       <div className="h-full overflow-y-auto">
         <div className="page-wrap max-w-2xl py-10">
@@ -103,16 +129,16 @@ function LoginContent() {
             </Link>
           </div>
           <section className="panel p-6 sm:p-8">
-            <h1 className="page-title">{roleLabel} login</h1>
+            <h1 className="display-title text-2xl sm:text-3xl">{label} login</h1>
             <p className="page-subtitle mt-2">
-              Beta workspace accounts use the student sign-up flow. Counselor and specialist tooling is coming next; for now please use a student account to explore the product.
+              Specialist and alumni accounts are coming soon. For now, sign up or log in as a student or counselor.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/auth/login?role=student" className="btn-primary">
-                Log in as student
+                Student login
               </Link>
-              <Link href="/auth/signup?role=student" className="btn-secondary">
-                Create student account
+              <Link href="/auth/login?role=counselor" className="btn-secondary">
+                Counselor login
               </Link>
             </div>
           </section>
@@ -128,14 +154,18 @@ function LoginContent() {
           <Link href="/" className="btn-ghost text-sm">
             ← Back
           </Link>
-          <Link href="/auth/signup?role=student" className="btn-secondary text-sm">
+          <Link href={`/auth/signup?role=${role}`} className="btn-secondary text-sm">
             Need an account? Sign up
           </Link>
         </div>
 
         <section className="panel p-6 sm:p-8">
-          <h1 className="page-title">Student login</h1>
-          <p className="page-subtitle mt-1">Use the email and password you verified, or continue with Google.</p>
+          <h1 className="display-title text-2xl sm:text-3xl">{label} login</h1>
+          <p className="page-subtitle mt-1">
+            {isCounselor
+              ? "Use the email and password you verified when you created your counselor account."
+              : "Use the email and password you verified, or continue with Google."}
+          </p>
 
           {errorPresentation ? (
             <AuthErrorCallout presentation={errorPresentation} extraHint={credentialExtraHint} />
@@ -175,23 +205,27 @@ function LoginContent() {
             </button>
           </form>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" style={{ borderColor: "var(--border-soft)" }} />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-wide">
-              <span className="px-2" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}>
-                or
-              </span>
-            </div>
-          </div>
+          {isStudent ? (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" style={{ borderColor: "var(--border-soft)" }} />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase tracking-wide">
+                  <span className="px-2" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}>
+                    or
+                  </span>
+                </div>
+              </div>
 
-          <button type="button" onClick={onGoogle} className="btn-secondary w-full">
-            Continue with Google
-          </button>
-          <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-            Google sign-in skips email OTP because Google already verified your address.
-          </p>
+              <button type="button" onClick={onGoogle} className="btn-secondary w-full">
+                Continue with Google
+              </button>
+              <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+                Google sign-in skips email OTP because Google already verified your address.
+              </p>
+            </>
+          ) : null}
         </section>
       </div>
     </div>

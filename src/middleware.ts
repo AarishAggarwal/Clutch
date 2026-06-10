@@ -8,10 +8,19 @@ export async function middleware(req: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  const path = req.nextUrl.pathname;
+
   if (!token) {
     const login = new URL("/auth/login", req.url);
-    login.searchParams.set("callbackUrl", req.nextUrl.pathname + req.nextUrl.search);
+    if (path.startsWith("/counselor")) {
+      login.searchParams.set("role", "counselor");
+    }
+    login.searchParams.set("callbackUrl", path + req.nextUrl.search);
     return NextResponse.redirect(login);
+  }
+
+  if (path.startsWith("/counselor") && token.role !== "counselor") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return NextResponse.next();
