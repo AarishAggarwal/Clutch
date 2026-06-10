@@ -18,8 +18,8 @@ export type AuthErrorPresentation = {
   audience: AuthErrorAudience;
 };
 
-const LINKING_FOOTNOTE =
-  "If you already have an account, use the same sign-in method you used when you first registered. Merging Google and password sign-in into one login is planned for a future update.";
+const UNIFIED_LOGIN_FOOTNOTE =
+  "One account per email — sign in with your password or Google, whichever you prefer.";
 
 /** NextAuth error query param values we care about */
 const KNOWN_CODES = new Set([
@@ -43,10 +43,10 @@ export function getAuthErrorPresentation(errorCode: string | null | undefined): 
   switch (code) {
     case "OAuthAccountNotLinked":
       return {
-        title: "This email already uses email and password",
-        body: "That address is registered with a password. Sign in with your email and password instead of Google.",
-        footnote: LINKING_FOOTNOTE,
-        audience: "use_password_instead_of_google",
+        title: "Could not connect Google to this email",
+        body: "Try signing in with your email and password, or use a different Google account.",
+        footnote: UNIFIED_LOGIN_FOOTNOTE,
+        audience: "generic",
       };
     case "CredentialsSignin":
       return {

@@ -139,12 +139,12 @@ function SignupWizard({ role }: { role: SignupRole }) {
         {authCallout ? (
           <div>
             <AuthErrorCallout presentation={authCallout} />
-            {authCallout.audience === "use_password_instead_of_google" ? (
+            {authCallout ? (
               <p className="mt-3 text-sm">
                 <Link href={`/auth/login?role=${role}`} className="font-medium underline underline-offset-2" style={{ color: "var(--text-primary)" }}>
                   Go to {label} login
                 </Link>{" "}
-                and sign in with your email and password.
+                and sign in with your password or Google.
               </p>
             ) : null}
           </div>
@@ -222,9 +222,9 @@ function SignupWizard({ role }: { role: SignupRole }) {
             <button type="button" onClick={onGoogle} className="btn-secondary w-full">
               Sign up with Google
             </button>
-            <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-              With Google we skip the email code and take you straight to profile setup.
-            </p>
+        <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+          Google uses the same account if you already signed up with this email — we skip the email code.
+        </p>
           </>
         ) : null}
       </>

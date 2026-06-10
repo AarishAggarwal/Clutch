@@ -24,8 +24,8 @@ function stripQuotes(value) {
   return s;
 }
 
-function loadEnvNeonFile() {
-  const filePath = path.join(process.cwd(), ".env.neon");
+function loadEnvFile(filename) {
+  const filePath = path.join(process.cwd(), filename);
   if (!fs.existsSync(filePath)) return;
   const text = fs.readFileSync(filePath, "utf8");
   for (const line of text.split("\n")) {
@@ -39,7 +39,8 @@ function loadEnvNeonFile() {
   }
 }
 
-loadEnvNeonFile();
+loadEnvFile(".env.local");
+loadEnvFile(".env.neon");
 
 if (process.env.DATABASE_URL) {
   process.env.DATABASE_URL = stripQuotes(process.env.DATABASE_URL);

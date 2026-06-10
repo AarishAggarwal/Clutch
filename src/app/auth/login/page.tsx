@@ -71,10 +71,10 @@ function LoginContent() {
         }
         if (data.hasGoogleLogin && !data.hasPasswordLogin) {
           setCredentialExtraHint(
-            "This email is set up for Google sign-in. Use “Continue with Google” below instead of your password.",
+            "No password on file for this email — use “Continue with Google” below.",
           );
-        } else if (data.hasPasswordLogin && !data.hasGoogleLogin) {
-          setCredentialExtraHint("This email uses a password only—Google isn’t connected for this account yet.");
+        } else if (data.hasPasswordLogin && data.hasGoogleLogin) {
+          setCredentialExtraHint("This account accepts both password and Google sign-in.");
         }
       } catch {
         /* ignore */
@@ -164,7 +164,7 @@ function LoginContent() {
           <p className="page-subtitle mt-1">
             {isCounselor
               ? "Use the email and password you verified when you created your counselor account."
-              : "Use the email and password you verified, or continue with Google."}
+              : "One account per email — sign in with your password or Google."}
           </p>
 
           {errorPresentation ? (
@@ -221,9 +221,9 @@ function LoginContent() {
               <button type="button" onClick={onGoogle} className="btn-secondary w-full">
                 Continue with Google
               </button>
-              <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-                Google sign-in skips email OTP because Google already verified your address.
-              </p>
+          <p className="mt-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+            Google connects to the same account if the email matches — no separate signup needed.
+          </p>
             </>
           ) : null}
         </section>

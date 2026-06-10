@@ -44,19 +44,12 @@ if (process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.tr
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Same verified email → one account; password and Google are interchangeable sign-in methods.
+      allowDangerousEmailAccountLinking: true,
     }),
   );
 }
 
-/**
- * Account linking (credentials ↔ Google, same email):
- * With the Prisma adapter and default NextAuth behavior, automatic email-based linking
- * is NOT enabled. If a `User` already exists for an email (e.g. from password signup),
- * Google OAuth returns `OAuthAccountNotLinked` instead of attaching the Google `Account`.
- * To allow linking, NextAuth supports `allowDangerousEmailAccountLinking` in options (with
- * serious account-takeover considerations; pair with verified-email rules and UX audits).
- * This app leaves it disabled until an explicit linking flow exists.
- */
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
@@ -64,6 +57,19 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/auth/login" },
   providers,
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user.email) {
+        await prisma.user.updateMany({
+          where: { email: user.email.toLowerCase() },
+          data: {
+            emailVerified: new Date(),
+            ...(user.name ? { name: user.name } : {}),
+            ...(user.image ? { image: user.image } : {}),
+          },
+        });
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
