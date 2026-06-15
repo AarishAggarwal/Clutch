@@ -44,7 +44,12 @@ export default function EssaysClient() {
     const res = await fetch("/api/essays");
     const data = (await res.json()) as { essays: Essay[] };
     setRows(data.essays);
-    if (!selectedId && data.essays[0]) setSelectedId(data.essays[0].id);
+    if (!data.essays.length) {
+      setSelectedId(null);
+      setForm(emptyDraft);
+    } else if (selectedId && !data.essays.some((e) => e.id === selectedId)) {
+      setSelectedId(data.essays[0]?.id ?? null);
+    }
   }
 
   React.useEffect(() => {

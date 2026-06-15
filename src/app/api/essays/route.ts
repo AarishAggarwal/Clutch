@@ -11,40 +11,10 @@ export async function GET() {
   }
 
   const userId = session.user.id;
-  let essays = await prisma.essay.findMany({
+  const essays = await prisma.essay.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
   });
-  if (!essays.length) {
-    await prisma.essay.createMany({
-      data: [
-        {
-          userId,
-          title: "Common App Personal Statement v2",
-          essayType: "common_app_personal_statement",
-          content: "I used to think leadership meant having the answers...",
-          status: "In Revision",
-          wordCount: 65,
-          notes: "Need stronger opening scene.",
-          draft: 2,
-        },
-        {
-          userId,
-          title: "Why Northwestern Supplement",
-          essayType: "supplemental_essay",
-          content: "Northwestern stands out to me because of interdisciplinary flexibility...",
-          status: "Draft",
-          wordCount: 57,
-          notes: "Add one specific program + professor.",
-          draft: 1,
-        },
-      ],
-    });
-    essays = await prisma.essay.findMany({
-      where: { userId },
-      orderBy: { updatedAt: "desc" },
-    });
-  }
   return NextResponse.json({ essays });
 }
 

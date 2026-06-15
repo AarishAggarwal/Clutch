@@ -11,44 +11,10 @@ export async function GET() {
   }
 
   const userId = session.user.id;
-  let activities = await prisma.activity.findMany({
+  const activities = await prisma.activity.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
   });
-  if (!activities.length) {
-    await prisma.activity.createMany({
-      data: [
-        {
-          userId,
-          title: "Debate Team Captain",
-          category: "Leadership",
-          organization: "Lincoln High Debate",
-          role: "Captain",
-          grades: "10-12",
-          hoursPerWeek: 6,
-          weeksPerYear: 34,
-          description: "Led varsity debate prep and weekly drills.",
-          achievementNotes: "State semifinalist; mentored 7 novice debaters.",
-        },
-        {
-          userId,
-          title: "Hospital Volunteer",
-          category: "Service",
-          organization: "Valley Health",
-          role: "Volunteer",
-          grades: "11-12",
-          hoursPerWeek: 4,
-          weeksPerYear: 30,
-          description: "Supported patient intake and logistics desk.",
-          achievementNotes: "120+ volunteer hours.",
-        },
-      ],
-    });
-    activities = await prisma.activity.findMany({
-      where: { userId },
-      orderBy: { updatedAt: "desc" },
-    });
-  }
   return NextResponse.json({ activities });
 }
 

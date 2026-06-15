@@ -18,12 +18,12 @@ type Activity = {
 
 const base = {
   title: "",
-  category: "Leadership",
+  category: "",
   organization: "",
   role: "",
-  grades: "9-12",
-  hoursPerWeek: 4,
-  weeksPerYear: 32,
+  grades: "",
+  hoursPerWeek: 0,
+  weeksPerYear: 0,
   description: "",
   achievementNotes: "",
 };
