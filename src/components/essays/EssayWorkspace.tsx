@@ -143,6 +143,7 @@ export default function EssayWorkspace() {
     });
     void loadComments(selected.id);
     dirtyRef.current = false;
+    setPromptExpanded(false);
   }, [selectedId]);
 
   const liveLimit = limitStatus({
@@ -402,7 +403,7 @@ export default function EssayWorkspace() {
   const listRows = tab === "common" ? commonRows : supplementRows;
 
   const promptText = form.promptText ?? "";
-  const promptPreview = promptText.length > 420 && !promptExpanded ? `${promptText.slice(0, 420)}…` : promptText;
+  const promptNeedsExpand = promptText.length > 100 || promptText.includes("\n");
 
   return (
     <div className="essay-shell flex h-full overflow-hidden">
@@ -567,18 +568,33 @@ export default function EssayWorkspace() {
         </header>
 
         {promptText ? (
-          <div className="border-b border-border-subtle bg-surface-container-low px-5 py-3 sm:px-6">
-            <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">Prompt</div>
-            <p className="mt-1.5 text-sm leading-relaxed text-text-secondary whitespace-pre-wrap">{promptPreview}</p>
-            {promptText.length > 420 ? (
-              <button type="button" onClick={() => setPromptExpanded((v) => !v)} className="mt-2 text-xs font-medium text-primary hover:underline">
-                {promptExpanded ? "Show less" : "Show more"}
-              </button>
-            ) : null}
+          <div className="shrink-0 border-b border-border-subtle bg-surface-container-low px-5 py-1.5 sm:px-6">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">Prompt</span>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={[
+                    "text-xs leading-snug text-text-secondary whitespace-pre-wrap",
+                    !promptExpanded ? "line-clamp-2" : "max-h-24 overflow-y-auto pr-1",
+                  ].join(" ")}
+                >
+                  {promptText}
+                </p>
+                {promptNeedsExpand ? (
+                  <button
+                    type="button"
+                    onClick={() => setPromptExpanded((v) => !v)}
+                    className="mt-0.5 text-[11px] font-medium text-primary hover:underline"
+                  >
+                    {promptExpanded ? "Collapse prompt" : "Show full prompt"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-surface px-5 py-2.5 sm:px-6">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-surface px-5 py-2 sm:px-6">
           <div className={liveLimit.exceeded ? "essay-limit-over text-sm font-medium" : "essay-limit-ok text-sm"}>
             <span className="font-data-mono font-medium text-text-primary">
               {liveLimit.max ? `${liveLimit.current} / ${liveLimit.max}` : countWordsLocal(form.plainText)}
