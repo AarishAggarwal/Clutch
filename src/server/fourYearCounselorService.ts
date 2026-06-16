@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { prisma } from "@/server/prisma";
+import { sanitizePlainText } from "@/server/plainText";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
 
@@ -29,6 +30,7 @@ function buildSystemPrompt() {
     "- Senior: writing strategy, application execution, narrative polish, deadlines and fit.",
     "Be direct, specific, and encouraging. Avoid generic motivational fluff.",
     "Use concise sections and clear next steps. Mention trade-offs where relevant.",
+    "Write in plain professional text only. Do not use markdown, asterisks, pipes, tables, or decorative symbols.",
     "If data is missing, explicitly state assumptions and ask targeted follow-up questions.",
     "Do not fabricate achievements or background details.",
   ].join("\n");
@@ -169,7 +171,7 @@ export async function getCounselorReply(params: {
         ],
       });
       const reply = ((res as any).output_text as string | undefined)?.trim();
-      if (reply) return { reply, modelName: groqModelName };
+      if (reply) return { reply: sanitizePlainText(reply), modelName: groqModelName };
     } catch {
       // fall through to Gemini
     }
@@ -188,7 +190,7 @@ export async function getCounselorReply(params: {
     if (!res.ok) throw new Error(`Gemini counselor request failed (${res.status}).`);
     const json: any = await res.json();
     const reply = json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
-    if (reply) return { reply, modelName: geminiModelName };
+    if (reply) return { reply: sanitizePlainText(reply), modelName: geminiModelName };
   }
 
   throw new Error("No AI provider returned a counselor reply.");

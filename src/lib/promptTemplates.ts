@@ -57,6 +57,7 @@ export function buildEssayEvaluationPrompts(params: {
       : []),
     "You must return ONLY valid JSON matching the required schema.",
     "Do not include any markdown, code fences, or commentary outside the JSON.",
+    "Use plain professional text only. Do not use asterisks, pipes, markdown headers, or tables.",
   ].join("\n");
 
   const user = [

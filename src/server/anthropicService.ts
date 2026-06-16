@@ -3,6 +3,7 @@ import type { ModelEvaluationJson } from "@/lib/evaluationSchema";
 import { modelEvaluationJsonSchema } from "@/lib/evaluationSchema";
 import { buildEssayEvaluationPrompts } from "@/lib/promptTemplates";
 import { getAcceptedEssaysReferenceText } from "@/server/acceptedEssaysReference";
+import { sanitizeJsonStrings } from "@/server/plainText";
 
 function extractJsonObject(text: string): string {
   const cleaned = text
@@ -101,7 +102,7 @@ export async function evaluateEssayWithClaude(params: {
   }
 
   const parsed = parseModelJson(content);
-  const parsedJson = modelEvaluationJsonSchema.parse(parsed);
+  const parsedJson = modelEvaluationJsonSchema.parse(sanitizeJsonStrings(parsed));
 
   return {
     provider: "gemini",

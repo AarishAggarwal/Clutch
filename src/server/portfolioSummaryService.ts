@@ -1,3 +1,5 @@
+import { sanitizeJsonStrings } from "@/server/plainText";
+
 export type PortfolioSummaryJson = {
   executive_summary: string;
   academic_standing: string;
@@ -34,7 +36,7 @@ export async function generatePortfolioSummary(studentData: {
     if (profile.sat == null && profile.act == null) missing.push("SAT/ACT");
     if (!studentData.essays.length) missing.push("essay drafts");
     if (!studentData.activities.length) missing.push("activities");
-    return {
+    return sanitizeJsonStrings({
       executive_summary: `Current readiness is ${studentData.readiness.overall}%. This summary is based only on counselor-visible profile, essays, and activities.`,
       academic_standing: profile.gpa == null ? "Academic metrics are incomplete (missing GPA)." : "Academic baseline is present and should be contextualized with rigor.",
       ec_narrative: studentData.activities.length ? "Activities show early narrative potential; focus on sustained impact and leadership evidence." : "No activities are filled yet.",
@@ -44,7 +46,7 @@ export async function generatePortfolioSummary(studentData: {
       priority_actions: missing.length ? missing.map((m) => `Complete ${m}.`) : ["Refine activity impact bullets.", "Improve essay specificity.", "Finalize testing strategy."],
       match_likelihood: { "Current estimate": "Insufficient complete data. Complete missing sections for a more realistic view." },
       counsellor_notes_prompt: missing.length ? `Which missing area can you complete first: ${missing.join(", ")}?` : "Which section feels least complete to you right now?",
-    };
+    });
   }
 
   const system = `You are a senior college admissions counsellor reviewing a student's portfolio.
@@ -54,7 +56,8 @@ top_strengths (array of 3 strings), priority_actions (array of 3 strings),
 match_likelihood (object with school name keys and brief assessment values),
 counsellor_notes_prompt (one question the counsellor should ask).
 Use ONLY provided data. Do not hallucinate missing facts.
-If data is missing, explicitly call it out and treat it as "not completed yet".`;
+If data is missing, explicitly call it out and treat it as "not completed yet".
+Do not use markdown symbols, asterisks, pipes, tables, or headings.`;
 
   const user = JSON.stringify(studentData, null, 2);
 
@@ -77,5 +80,5 @@ If data is missing, explicitly call it out and treat it as "not completed yet".`
   const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
   if (!text) throw new Error("Empty AI response.");
   const parsed = JSON.parse(extractJsonObject(text)) as PortfolioSummaryJson;
-  return parsed;
+  return sanitizeJsonStrings(parsed);
 }
