@@ -54,13 +54,26 @@ export async function PUT(req: Request) {
   const body = await req.json();
   const parsed = profileInputSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid profile payload." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid profile payload.", details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
   const data = {
-    ...parsed.data,
+    fullName: parsed.data.fullName ?? undefined,
+    graduationYear: parsed.data.graduationYear ?? undefined,
+    schoolName: parsed.data.schoolName ?? undefined,
+    gpa: parsed.data.gpa ?? undefined,
+    sat: parsed.data.sat ?? undefined,
+    act: parsed.data.act ?? undefined,
     intendedMajors: parsed.data.intendedMajors ?? "",
+    courseworkSummary: parsed.data.courseworkSummary ?? undefined,
+    location: parsed.data.location ?? undefined,
     interests: parsed.data.interests ?? "",
+    notes: parsed.data.notes ?? undefined,
+    pronouns: parsed.data.pronouns ?? undefined,
+    boardSystem: parsed.data.boardSystem ?? undefined,
     academicData: parsed.data.academicData ? JSON.stringify(parsed.data.academicData) : undefined,
   };
 

@@ -63,6 +63,15 @@ export default function ProfilePage() {
     }));
   }
 
+  function cleanAcademicData(ad: AcademicData | null | undefined): Record<string, unknown> | undefined {
+    if (!ad) return undefined;
+    const cleaned: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(ad)) {
+      if (value !== null && value !== undefined && value !== "") cleaned[key] = value;
+    }
+    return Object.keys(cleaned).length ? cleaned : undefined;
+  }
+
   async function save() {
     const satErr = satError(profile.sat);
     const actErr = actError(profile.act);
@@ -75,14 +84,20 @@ export default function ProfilePage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...profile,
-        graduationYear: profile.graduationYear ? Number(profile.graduationYear) : undefined,
-        gpa: profile.gpa ? Number(profile.gpa) : undefined,
-        sat: profile.sat ?? null,
-        act: profile.act ?? null,
+        fullName: profile.fullName?.trim() || undefined,
         pronouns: profile.pronouns?.trim() || undefined,
-        boardSystem: profile.boardSystem ?? null,
-        academicData: profile.academicData ?? {},
+        graduationYear: profile.graduationYear ?? undefined,
+        schoolName: profile.schoolName?.trim() || undefined,
+        location: profile.location?.trim() || undefined,
+        boardSystem: profile.boardSystem ?? undefined,
+        gpa: profile.gpa ?? undefined,
+        sat: profile.sat ?? undefined,
+        act: profile.act ?? undefined,
+        intendedMajors: profile.intendedMajors?.trim() ?? "",
+        courseworkSummary: profile.courseworkSummary?.trim() || undefined,
+        interests: profile.interests?.trim() ?? "",
+        notes: profile.notes?.trim() || undefined,
+        academicData: cleanAcademicData(profile.academicData),
       }),
     });
     if (!res.ok) {

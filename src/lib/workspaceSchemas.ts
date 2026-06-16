@@ -40,20 +40,20 @@ export const activityInputSchema = z.object({
 });
 
 export const profileInputSchema = z.object({
-  fullName: z.string().max(120).optional(),
-  graduationYear: z.number().int().min(2024).max(2040).optional(),
-  schoolName: z.string().max(200).optional(),
-  gpa: z.number().min(0).max(5).optional(),
-  sat: z.number().int().min(400).max(1600).optional().nullable(),
-  act: z.number().int().min(1).max(36).optional().nullable(),
-  intendedMajors: z.string().max(500).optional(),
-  courseworkSummary: z.string().max(1000).optional(),
-  location: z.string().max(120).optional(),
-  interests: z.string().max(1000).optional(),
-  notes: z.string().max(4000).optional(),
-  pronouns: z.string().max(60).optional(),
-  boardSystem: z.enum(["CBSE", "ICSE", "IB", "AP"]).optional().nullable(),
-  academicData: z.record(z.string(), z.unknown()).optional(),
+  fullName: z.string().max(120).nullish(),
+  graduationYear: z.number().int().min(2024).max(2040).nullish(),
+  schoolName: z.string().max(200).nullish(),
+  gpa: z.number().min(0).max(5).nullish(),
+  sat: z.number().int().min(400).max(1600).nullish(),
+  act: z.number().int().min(1).max(36).nullish(),
+  intendedMajors: z.string().max(500).nullish(),
+  courseworkSummary: z.string().max(1000).nullish(),
+  location: z.string().max(120).nullish(),
+  interests: z.string().max(1000).nullish(),
+  notes: z.string().max(4000).nullish(),
+  pronouns: z.string().max(60).nullish(),
+  boardSystem: z.enum(["CBSE", "ICSE", "IB", "AP"]).nullish(),
+  academicData: z.record(z.string(), z.unknown()).nullish(),
 });
 
 export const documentInputSchema = z.object({
