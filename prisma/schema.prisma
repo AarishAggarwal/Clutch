@@ -221,7 +221,6 @@ model Essay {
   wordCount  Int
   notes      String?
   draft      Int      @default(1)
-  counselorFeedback CounselorFeedback[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -241,7 +240,6 @@ model Activity {
   weeksPerYear     Int
   description      String
   achievementNotes String?
-  counselorFeedback CounselorFeedback[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
