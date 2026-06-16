@@ -211,20 +211,71 @@ model University {
 }
 
 model Essay {
-  id         String   @id @default(cuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title      String
-  essayType  String
-  content    String
-  status     String
-  wordCount  Int
-  notes      String?
-  draft      Int      @default(1)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  essayType      String
+  content        String
+  richContent    String?
+  plainText      String?
+  status         String
+  wordCount      Int
+  characterCount Int      @default(0)
+  notes          String?
+  promptText     String?
+  universitySlug String?
+  universityName String?
+  promptId       String?
+  limitType      String?
+  limitValue     Int?
+  draft          Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  versions EssayVersion[]
+  comments EssayComment[]
 
   @@index([userId])
+}
+
+model EssayVersion {
+  id             String   @id @default(cuid())
+  essayId        String
+  essay          Essay    @relation(fields: [essayId], references: [id], onDelete: Cascade)
+  content        String
+  richContent    String?
+  wordCount      Int
+  characterCount Int      @default(0)
+  createdById    String?
+  authorRole     String   @default("student")
+  createdAt      DateTime @default(now())
+
+  @@index([essayId, createdAt])
+}
+
+model EssayComment {
+  id             String         @id @default(cuid())
+  essayId        String
+  essay          Essay          @relation(fields: [essayId], references: [id], onDelete: Cascade)
+  authorId       String
+  authorRole     String
+  content        String
+  anchorStart    Int
+  anchorEnd      Int
+  quotedText     String
+  highlightColor String         @default("#fef08a")
+  resolved       Boolean        @default(false)
+  resolvedAt     DateTime?
+  resolvedById   String?
+  parentId       String?
+  parent         EssayComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        EssayComment[] @relation("CommentReplies")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([essayId, resolved])
+  @@index([parentId])
 }
 
 model Activity {
@@ -261,6 +312,9 @@ model StudentProfile {
   location         String?
   interests        String
   notes            String?
+  pronouns         String?
+  boardSystem      String?
+  academicData     String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -36,9 +36,14 @@ export async function POST(req: Request) {
   if (!link) return forbidden();
 
   const uid = profile.userId;
-  const [essays, activities] = await Promise.all([
+  const [essays, activities, essayComments] = await Promise.all([
     prisma.essay.findMany({ where: { userId: uid }, orderBy: { updatedAt: "desc" } }),
     prisma.activity.findMany({ where: { userId: uid }, orderBy: { updatedAt: "desc" } }),
+    prisma.essayComment.findMany({
+      where: { essay: { userId: uid }, resolved: false, parentId: null },
+      take: 20,
+      select: { content: true, quotedText: true },
+    }),
   ]);
 
   const readiness = computeReadiness({
@@ -65,6 +70,7 @@ export async function POST(req: Request) {
         role: a.role,
         description: a.description,
       })),
+      comments: essayComments,
       readiness,
     });
 

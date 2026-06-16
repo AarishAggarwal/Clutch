@@ -17,7 +17,8 @@ const studentMain: NavItem[] = [
 const studentResources: NavItem[] = [
   { href: "/application-preview", label: "Preview", icon: "preview" },
   { href: "/activities", label: "Activities", icon: "groups" },
-  { href: "/resources", label: "Resource", icon: "chat" },
+  { href: "/resources?tab=essay-assistant", label: "Essay Assistant", icon: "edit_note" },
+  { href: "/resources?tab=counselor", label: "4-Year Counselor", icon: "chat" },
   { href: "/locker", label: "Locker", icon: "folder" },
   { href: "/scholarships", label: "Scholarships", icon: "school" },
   { href: "/marketplace", label: "Marketplace", icon: "storefront" },
@@ -32,12 +33,14 @@ const counselorNav: NavItem[] = [
 ];
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const hrefPath = item.href.split("?")[0];
   const active =
-    pathname === item.href ||
-    (item.href !== "/" && pathname.startsWith(item.href) && item.href !== "/counselor/students");
+    pathname === hrefPath ||
+    (hrefPath !== "/" && pathname.startsWith(hrefPath) && hrefPath !== "/counselor/students");
   const studentsActive = item.href === "/counselor/students" && pathname.startsWith("/counselor/students") && !pathname.startsWith("/counselor/students/add");
+  const resourcesActive = item.href.startsWith("/resources") && pathname.startsWith("/resources");
 
-  const isActive = item.href === "/counselor/students" ? studentsActive : active;
+  const isActive = item.href === "/counselor/students" ? studentsActive : item.href.startsWith("/resources") ? resourcesActive : active;
 
   return (
     <Link

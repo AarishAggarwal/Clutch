@@ -1,18 +1,16 @@
 import { Suspense } from "react";
-import EssaysClient from "./EssaysClient";
+import EssayWorkspace from "@/components/essays/EssayWorkspace";
 
 export default function EssaysPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-full overflow-y-auto">
-          <div className="page-wrap p-6">
-            <p className="section-meta">Loading essay workspace…</p>
-          </div>
+        <div className="flex h-full items-center justify-center">
+          <p className="text-sm text-gray-500">Loading essay workspace…</p>
         </div>
       }
     >
-      <EssaysClient />
+      <EssayWorkspace />
     </Suspense>
   );
 }

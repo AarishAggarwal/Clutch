@@ -3,6 +3,31 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/server/prisma";
 import { essayInputSchema } from "@/lib/workspaceSchemas";
 import { authOptions } from "@/lib/auth";
+import { normalizeEssayPayload } from "@/lib/essayPayload";
+import { parseLimitFromPrompt } from "@/lib/essayLimits";
+
+function buildEssayData(payload: ReturnType<typeof normalizeEssayPayload>, userId: string) {
+  const parsedLimit = payload.promptText ? parseLimitFromPrompt(payload.promptText) : null;
+  return {
+    userId,
+    title: payload.title,
+    essayType: payload.essayType,
+    content: payload.content,
+    richContent: payload.richContent ?? null,
+    plainText: payload.plainText,
+    status: payload.status,
+    wordCount: payload.wordCount,
+    characterCount: payload.characterCount,
+    notes: payload.notes,
+    draft: payload.draft ?? 1,
+    promptText: payload.promptText ?? null,
+    universitySlug: payload.universitySlug ?? null,
+    universityName: payload.universityName ?? null,
+    promptId: payload.promptId ?? null,
+    limitType: payload.limitType ?? parsedLimit?.limitType ?? null,
+    limitValue: payload.limitValue ?? parsedLimit?.limitValue ?? null,
+  };
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -45,19 +70,26 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid essay payload." }, { status: 400 });
   }
-  const content = parsed.data.content.trim();
-  const wordCount = content ? content.split(/\s+/).filter(Boolean).length : 0;
+  const normalized = normalizeEssayPayload(parsed.data);
+  if (!normalized.plainText && !normalized.richContent) {
+    return NextResponse.json({ error: "Essay content required." }, { status: 400 });
+  }
+
   const essay = await prisma.essay.create({
+    data: buildEssayData(normalized, session.user.id),
+  });
+
+  await prisma.essayVersion.create({
     data: {
-      userId: session.user.id,
-      title: parsed.data.title,
-      essayType: parsed.data.essayType,
-      content,
-      status: parsed.data.status,
-      wordCount,
-      notes: parsed.data.notes,
-      draft: parsed.data.draft ?? 1,
+      essayId: essay.id,
+      content: essay.content,
+      richContent: essay.richContent,
+      wordCount: essay.wordCount,
+      characterCount: essay.characterCount,
+      createdById: session.user.id,
+      authorRole: "student",
     },
   });
+
   return NextResponse.json({ essay }, { status: 201 });
 }

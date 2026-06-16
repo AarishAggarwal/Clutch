@@ -41,15 +41,17 @@ type StudentView = {
   }>;
   locker: Array<{ id: string; title: string; updatedAt: string }>;
   aiSummary: {
+    academic_overview?: string;
+    extracurricular_overview?: string;
+    strengths?: string[];
+    weaknesses?: string[];
+    college_readiness?: string;
+    recommended_next_steps?: string[];
     executive_summary?: string;
-    academic_standing?: string;
     ec_narrative?: string;
     essay_readiness?: string;
-    college_list_balance?: string;
     top_strengths?: string[];
     priority_actions?: string[];
-    match_likelihood?: Record<string, string>;
-    counsellor_notes_prompt?: string;
     generatedAt?: string;
   } | null;
 };
@@ -81,6 +83,8 @@ export default function CounselorStudentDetailPage() {
   const [generating, setGenerating] = React.useState(false);
   const [expandedEssay, setExpandedEssay] = React.useState<string | null>(null);
   const [feedback, setFeedback] = React.useState<Feedback[]>([]);
+  const [essayEdits, setEssayEdits] = React.useState<Record<string, string>>({});
+  const [essaySaving, setEssaySaving] = React.useState<string | null>(null);
   const [essayCommentDrafts, setEssayCommentDrafts] = React.useState<Record<string, string>>({});
   const [activityCommentDrafts, setActivityCommentDrafts] = React.useState<Record<string, string>>({});
 
@@ -147,6 +151,27 @@ export default function CounselorStudentDetailPage() {
       const data = (await res.json()) as { note: Note };
       setNotes((prev) => [data.note, ...prev]);
     }
+  }
+
+  async function saveEssayEdit(essay: StudentView["essays"][0]) {
+    const content = (essayEdits[essay.id] ?? essay.content).trim();
+    if (!content) return;
+    setEssaySaving(essay.id);
+    const res = await fetch(`/api/essays/${essay.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: essay.title,
+        essayType: essay.essayType,
+        content,
+        plainText: content,
+        status: essay.status,
+        draft: 1,
+        authorRole: "counselor",
+      }),
+    });
+    setEssaySaving(null);
+    if (res.ok) await load();
   }
 
   async function submitComment(targetType: "essay" | "activity", targetId: string) {
@@ -222,44 +247,51 @@ export default function CounselorStudentDetailPage() {
             </button>
           </div>
 
-          {summary?.executive_summary ? (
+          {(summary?.academic_overview || summary?.executive_summary) ? (
             <div className="mt-4 space-y-4">
               <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)" }}>
-                {summary.executive_summary}
+                {summary.academic_overview ?? summary.executive_summary}
               </p>
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <div className="panel-muted p-3">
-                  <div className="section-heading text-xs">Top strengths</div>
+                  <div className="section-heading text-xs">Extracurricular overview</div>
+                  <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {summary.extracurricular_overview ?? summary.ec_narrative ?? "—"}
+                  </p>
+                </div>
+                <div className="panel-muted p-3">
+                  <div className="section-heading text-xs">College readiness</div>
+                  <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {summary.college_readiness ?? summary.essay_readiness ?? "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="panel-muted p-3">
+                  <div className="section-heading text-xs">Strengths</div>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {(summary.top_strengths ?? []).map((s) => (
+                    {(summary.strengths ?? summary.top_strengths ?? []).map((s) => (
                       <li key={s}>{s}</li>
                     ))}
                   </ul>
                 </div>
                 <div className="panel-muted p-3">
-                  <div className="section-heading text-xs">Priority actions</div>
+                  <div className="section-heading text-xs">Weaknesses</div>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {(summary.priority_actions ?? []).map((s) => (
+                    {(summary.weaknesses ?? []).map((s) => (
                       <li key={s}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="panel-muted p-3">
-                  <div className="section-heading text-xs">Match likelihood</div>
-                  <ul className="mt-2 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {Object.entries(summary.match_likelihood ?? {}).map(([school, note]) => (
-                      <li key={school}>
-                        <strong>{school}:</strong> {note}
-                      </li>
                     ))}
                   </ul>
                 </div>
               </div>
-              {summary.counsellor_notes_prompt ? (
-                <div className="panel-muted p-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  <strong>Ask the student:</strong> {summary.counsellor_notes_prompt}
-                </div>
-              ) : null}
+              <div className="panel-muted p-3">
+                <div className="section-heading text-xs">Recommended next steps</div>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {(summary.recommended_next_steps ?? summary.priority_actions ?? []).map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           ) : (
             <p className="section-meta mt-4">Generate a summary to get an AI-powered overview of this student&apos;s portfolio.</p>
@@ -299,8 +331,21 @@ export default function CounselorStudentDetailPage() {
                 </button>
                 {expandedEssay === e.id ? (
                   <div className="mt-3 space-y-3">
-                    <div className="whitespace-pre-wrap rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                      {e.content || "(Empty draft)"}
+                    <div>
+                      <div className="section-heading text-xs">Edit essay (saved with version history)</div>
+                      <textarea
+                        className="input-base mt-2 min-h-[10rem] w-full resize-y text-sm leading-relaxed"
+                        value={essayEdits[e.id] ?? e.content}
+                        onChange={(ev) => setEssayEdits((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        className="btn-primary mt-2 text-xs"
+                        disabled={essaySaving === e.id}
+                        onClick={() => void saveEssayEdit(e)}
+                      >
+                        {essaySaving === e.id ? "Saving…" : "Save edits"}
+                      </button>
                     </div>
                     <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-soft)" }}>
                       <div className="section-heading text-xs">Student-visible counselor comments</div>

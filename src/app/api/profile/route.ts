@@ -5,6 +5,18 @@ import { profileInputSchema } from "@/lib/workspaceSchemas";
 import { toStudentId } from "@/lib/studentId";
 import { authOptions } from "@/lib/auth";
 
+function formatProfile(profile: NonNullable<Awaited<ReturnType<typeof prisma.studentProfile.findUnique>>>) {
+  let academicData: Record<string, unknown> | null = null;
+  if (profile.academicData) {
+    try {
+      academicData = JSON.parse(profile.academicData) as Record<string, unknown>;
+    } catch {
+      academicData = null;
+    }
+  }
+  return { ...profile, academicData };
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -27,7 +39,7 @@ export async function GET() {
       },
     });
   }
-  return NextResponse.json({ profile, studentId: toStudentId(profile.id) });
+  return NextResponse.json({ profile: formatProfile(profile), studentId: toStudentId(profile.id) });
 }
 
 export async function PUT(req: Request) {
@@ -49,6 +61,7 @@ export async function PUT(req: Request) {
     ...parsed.data,
     intendedMajors: parsed.data.intendedMajors ?? "",
     interests: parsed.data.interests ?? "",
+    academicData: parsed.data.academicData ? JSON.stringify(parsed.data.academicData) : undefined,
   };
 
   const profile = await prisma.studentProfile.upsert({
@@ -60,5 +73,5 @@ export async function PUT(req: Request) {
     update: data,
   });
 
-  return NextResponse.json({ profile, studentId: toStudentId(profile.id) });
+  return NextResponse.json({ profile: formatProfile(profile), studentId: toStudentId(profile.id) });
 }
