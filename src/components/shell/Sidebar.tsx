@@ -17,7 +17,7 @@ const studentMain: NavItem[] = [
 const studentResources: NavItem[] = [
   { href: "/application-preview", label: "Preview", icon: "preview" },
   { href: "/activities", label: "Activities", icon: "groups" },
-  { href: "/chat", label: "Messages", icon: "chat" },
+  { href: "/resources", label: "Resource", icon: "chat" },
   { href: "/locker", label: "Locker", icon: "folder" },
   { href: "/scholarships", label: "Scholarships", icon: "school" },
   { href: "/marketplace", label: "Marketplace", icon: "storefront" },

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCounselorReply } from "@/server/fourYearCounselorService";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const reqSchema = z.object({
   message: z.string().min(1),
+  mode: z.enum(["general", "activities"]).optional().default("general"),
   history: z
     .array(
       z.object({
@@ -17,6 +20,10 @@ const reqSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await req.json().catch(() => null);
     const parsed = reqSchema.safeParse(body);
     if (!parsed.success) {
@@ -26,6 +33,8 @@ export async function POST(req: Request) {
     const { reply, modelName } = await getCounselorReply({
       userMessage: parsed.data.message.trim(),
       history: parsed.data.history,
+      userId: session.user.id,
+      mode: parsed.data.mode,
     });
 
     return NextResponse.json({ ok: true, reply, modelName });

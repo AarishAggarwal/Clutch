@@ -29,16 +29,35 @@ export async function generatePortfolioSummary(studentData: {
   readiness: { overall: number };
 }): Promise<PortfolioSummaryJson> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
+  if (!apiKey) {
+    const profile = studentData.profile as { gpa?: number | null; sat?: number | null; act?: number | null };
+    const missing: string[] = [];
+    if (profile.gpa == null) missing.push("GPA");
+    if (profile.sat == null && profile.act == null) missing.push("SAT/ACT");
+    if (!studentData.essays.length) missing.push("essay drafts");
+    if (!studentData.activities.length) missing.push("activities");
+    return {
+      executive_summary: `Current readiness is ${studentData.readiness.overall}%. This summary is based only on counselor-visible profile, essays, and activities.`,
+      academic_standing: profile.gpa == null ? "Academic metrics are incomplete (missing GPA)." : "Academic baseline is present and should be contextualized with rigor.",
+      ec_narrative: studentData.activities.length ? "Activities show early narrative potential; focus on sustained impact and leadership evidence." : "No activities are filled yet.",
+      essay_readiness: studentData.essays.length ? "Essays are started; next step is clearer personal positioning and stronger specificity." : "No essays are filled yet.",
+      college_list_balance: "List balance cannot be fully judged yet; refine after profile and writing are complete.",
+      top_strengths: ["Work-in-progress portfolio", "Counselor visibility enabled", "Actionable next steps identified"],
+      priority_actions: missing.length ? missing.map((m) => `Complete ${m}.`) : ["Refine activity impact bullets.", "Improve essay specificity.", "Finalize testing strategy."],
+      match_likelihood: { "Current estimate": "Insufficient complete data. Complete missing sections for a more realistic view." },
+      counsellor_notes_prompt: missing.length ? `Which missing area can you complete first: ${missing.join(", ")}?` : "Which section feels least complete to you right now?",
+    };
+  }
 
   const client = new OpenAI({ apiKey });
-  const system = `You are a senior college admissions counsellor reviewing a student's complete application portfolio.
+  const system = `You are a senior college admissions counsellor reviewing a student's portfolio.
 Analyse the student's profile and return ONLY valid JSON (no markdown) with these fields:
 executive_summary, academic_standing, ec_narrative, essay_readiness, college_list_balance,
 top_strengths (array of 3 strings), priority_actions (array of 3 strings),
 match_likelihood (object with school name keys and brief assessment values),
 counsellor_notes_prompt (one question the counsellor should ask).
-Be specific about the student's actual data. Do not use generic advice.`;
+Use ONLY provided data. Do not hallucinate missing facts.
+If data is missing, explicitly call it out and treat it as "not completed yet".`;
 
   const user = JSON.stringify(studentData, null, 2);
 

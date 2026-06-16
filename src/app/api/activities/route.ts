@@ -15,7 +15,22 @@ export async function GET() {
     where: { userId },
     orderBy: { updatedAt: "desc" },
   });
-  return NextResponse.json({ activities });
+  const feedback = await prisma.counselorFeedback.findMany({
+    where: { userId, targetType: "activity", visibility: "student" },
+    orderBy: { createdAt: "desc" },
+  });
+  const byTarget = new Map<string, Array<{ id: string; content: string; createdAt: Date }>>();
+  for (const f of feedback) {
+    const existing = byTarget.get(f.targetId) ?? [];
+    existing.push({ id: f.id, content: f.content, createdAt: f.createdAt });
+    byTarget.set(f.targetId, existing);
+  }
+  return NextResponse.json({
+    activities: activities.map((activity) => ({
+      ...activity,
+      counselorComments: byTarget.get(activity.id) ?? [],
+    })),
+  });
 }
 
 export async function POST(req: Request) {

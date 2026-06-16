@@ -180,7 +180,7 @@ export default async function UniversityDetailPage({ params }: { params: { slug:
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <Link href="/chat" className="uni-profile-btn-outline">
+                  <Link href={`/universities/${uni.slug}/chances`} className="uni-profile-btn-outline">
                     <IconSparkles className="h-4 w-4" />
                     See my chances
                   </Link>

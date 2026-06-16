@@ -37,15 +37,27 @@ function buildSystemPrompt() {
 export async function getCounselorReply(params: {
   userMessage: string;
   history: ChatTurn[];
+  userId: string;
+  mode: "general" | "activities";
 }): Promise<{ reply: string; modelName: string }> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey?.trim()) throw new Error("Missing OPENAI_API_KEY");
+  if (!apiKey?.trim()) {
+    const starter =
+      params.mode === "activities"
+        ? "Activity review mode: share role, impact, and time commitment for each item."
+        : "General counselor mode: share grade, intended majors, and current priorities.";
+    return {
+      modelName: "fallback-local",
+      reply: `${starter}\n\nI can still help without AI: based on your message, focus on one concrete action this week, one measurable outcome, and one missing data point to complete.`,
+    };
+  }
 
   const modelName = process.env.OPENAI_COUNSELOR_MODEL ?? process.env.OPENAI_EVAL_MODEL ?? "gpt-4o-mini";
 
   const [profile, activities, essays, documents] = await Promise.all([
-    prisma.studentProfile.findFirst({ orderBy: { updatedAt: "desc" } }),
+    prisma.studentProfile.findUnique({ where: { userId: params.userId } }),
     prisma.activity.findMany({
+      where: { userId: params.userId },
       orderBy: { updatedAt: "desc" },
       take: 12,
       select: {
@@ -61,6 +73,7 @@ export async function getCounselorReply(params: {
       },
     }),
     prisma.essay.findMany({
+      where: { userId: params.userId },
       orderBy: { updatedAt: "desc" },
       take: 10,
       select: { title: true, essayType: true, status: true, wordCount: true, notes: true },

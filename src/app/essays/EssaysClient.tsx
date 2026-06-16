@@ -15,6 +15,7 @@ type Essay = {
   notes?: string | null;
   draft: number;
   updatedAt: string;
+  counselorComments?: Array<{ id: string; content: string; createdAt: string }>;
 };
 
 const emptyDraft = {
@@ -369,6 +370,18 @@ export default function EssaysClient() {
                   className="input-base h-24 resize-y"
                 />
               </div>
+              {selected?.counselorComments?.length ? (
+                <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-soft)" }}>
+                  <div className="field-label">Counselor comments (shared with you)</div>
+                  <div className="mt-2 space-y-2">
+                    {selected.counselorComments.map((c) => (
+                      <div key={c.id} className="rounded-md border px-2 py-2 text-sm" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        {c.content}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
                 <span className="section-meta">
                   <span className="font-medium" style={{ color: "var(--text-secondary)" }}>

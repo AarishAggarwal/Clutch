@@ -62,6 +62,14 @@ type Note = {
   createdAt: string;
 };
 
+type Feedback = {
+  id: string;
+  targetType: "essay" | "activity";
+  targetId: string;
+  content: string;
+  createdAt: string;
+};
+
 export default function CounselorStudentDetailPage() {
   const params = useParams();
   const studentId = String(params.studentId ?? "");
@@ -72,13 +80,17 @@ export default function CounselorStudentDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [generating, setGenerating] = React.useState(false);
   const [expandedEssay, setExpandedEssay] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<Feedback[]>([]);
+  const [essayCommentDrafts, setEssayCommentDrafts] = React.useState<Record<string, string>>({});
+  const [activityCommentDrafts, setActivityCommentDrafts] = React.useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
     setError(null);
-    const [studentRes, notesRes] = await Promise.all([
+    const [studentRes, notesRes, feedbackRes] = await Promise.all([
       fetch(`/api/counselor/student/${encodeURIComponent(studentId)}`),
       fetch(`/api/counselor/notes/${encodeURIComponent(studentId)}`),
+      fetch(`/api/counselor/feedback/${encodeURIComponent(studentId)}`),
     ]);
     if (!studentRes.ok) {
       const data = (await studentRes.json().catch(() => ({}))) as { error?: string };
@@ -90,6 +102,10 @@ export default function CounselorStudentDetailPage() {
     if (notesRes.ok) {
       const data = (await notesRes.json()) as { notes: Note[] };
       setNotes(data.notes ?? []);
+    }
+    if (feedbackRes.ok) {
+      const data = (await feedbackRes.json()) as { feedback: Feedback[] };
+      setFeedback(data.feedback ?? []);
     }
     setLoading(false);
   }
@@ -131,6 +147,28 @@ export default function CounselorStudentDetailPage() {
       const data = (await res.json()) as { note: Note };
       setNotes((prev) => [data.note, ...prev]);
     }
+  }
+
+  async function submitComment(targetType: "essay" | "activity", targetId: string) {
+    const value = (targetType === "essay" ? essayCommentDrafts[targetId] : activityCommentDrafts[targetId])?.trim();
+    if (!value) return;
+    const res = await fetch(`/api/counselor/feedback/${encodeURIComponent(studentId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetType, targetId, content: value }),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { feedback: Feedback };
+    setFeedback((prev) => [data.feedback, ...prev]);
+    if (targetType === "essay") {
+      setEssayCommentDrafts((prev) => ({ ...prev, [targetId]: "" }));
+    } else {
+      setActivityCommentDrafts((prev) => ({ ...prev, [targetId]: "" }));
+    }
+  }
+
+  function commentsFor(targetType: "essay" | "activity", targetId: string) {
+    return feedback.filter((f) => f.targetType === targetType && f.targetId === targetId);
   }
 
   if (loading) {
@@ -260,8 +298,30 @@ export default function CounselorStudentDetailPage() {
                   </span>
                 </button>
                 {expandedEssay === e.id ? (
-                  <div className="mt-3 whitespace-pre-wrap rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                    {e.content || "(Empty draft)"}
+                  <div className="mt-3 space-y-3">
+                    <div className="whitespace-pre-wrap rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                      {e.content || "(Empty draft)"}
+                    </div>
+                    <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-soft)" }}>
+                      <div className="section-heading text-xs">Student-visible counselor comments</div>
+                      <div className="mt-2 space-y-2">
+                        {commentsFor("essay", e.id).map((c) => (
+                          <div key={c.id} className="rounded border px-2 py-2 text-xs" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                            {c.content}
+                          </div>
+                        ))}
+                        {!commentsFor("essay", e.id).length ? <div className="section-meta">No comments yet.</div> : null}
+                      </div>
+                      <textarea
+                        className="input-base mt-2 h-20 w-full resize-y text-sm"
+                        placeholder="Add comment visible to student..."
+                        value={essayCommentDrafts[e.id] ?? ""}
+                        onChange={(ev) => setEssayCommentDrafts((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                      />
+                      <button type="button" className="btn-secondary mt-2 text-xs" onClick={() => void submitComment("essay", e.id)}>
+                        Post comment
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -288,6 +348,22 @@ export default function CounselorStudentDetailPage() {
                     <td className="py-2">
                       {a.title}
                       <div className="section-meta mt-1">{a.description}</div>
+                      <div className="mt-2 space-y-1">
+                        {commentsFor("activity", a.id).slice(0, 2).map((c) => (
+                          <div key={c.id} className="rounded border px-2 py-1 text-xs" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                            {c.content}
+                          </div>
+                        ))}
+                      </div>
+                      <textarea
+                        className="input-base mt-2 h-16 w-full resize-y text-xs"
+                        placeholder="Add activity comment visible to student..."
+                        value={activityCommentDrafts[a.id] ?? ""}
+                        onChange={(ev) => setActivityCommentDrafts((prev) => ({ ...prev, [a.id]: ev.target.value }))}
+                      />
+                      <button type="button" className="btn-secondary mt-2 text-xs" onClick={() => void submitComment("activity", a.id)}>
+                        Post comment
+                      </button>
                     </td>
                     <td className="py-2">{a.category}</td>
                     <td className="py-2">{a.role}</td>

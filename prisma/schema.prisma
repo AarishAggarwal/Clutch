@@ -30,6 +30,7 @@ model User {
   essays           Essay[]
   activities       Activity[]
   conversations    Conversation[]
+  notifications    Notification[]
 }
 
 model Account {
@@ -220,6 +221,7 @@ model Essay {
   wordCount  Int
   notes      String?
   draft      Int      @default(1)
+  counselorFeedback CounselorFeedback[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -239,6 +241,7 @@ model Activity {
   weeksPerYear     Int
   description      String
   achievementNotes String?
+  counselorFeedback CounselorFeedback[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -266,6 +269,7 @@ model StudentProfile {
   counselorLinks   CounselorStudentLink[]
   aiSummaries      AiSummary[]
   counselorNotes   CounselorNote[]
+  feedback         CounselorFeedback[]
 }
 
 model CounselorProfile {
@@ -285,6 +289,7 @@ model CounselorProfile {
   studentLinks        CounselorStudentLink[]
   aiSummaries         AiSummary[]
   notes               CounselorNote[]
+  feedback            CounselorFeedback[]
 }
 
 model CounselorStudentLink {
@@ -329,6 +334,39 @@ model CounselorNote {
   updatedAt        DateTime         @updatedAt
 
   @@index([counselorId, studentProfileId])
+}
+
+model CounselorFeedback {
+  id               String           @id @default(cuid())
+  counselorId      String
+  counselor        CounselorProfile @relation(fields: [counselorId], references: [id], onDelete: Cascade)
+  studentProfileId String
+  studentProfile   StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  userId           String
+  targetType       String
+  targetId         String
+  visibility       String           @default("student")
+  content          String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([studentProfileId, targetType, targetId, createdAt])
+  @@index([userId, targetType, targetId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  readAt    DateTime?
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model Document {

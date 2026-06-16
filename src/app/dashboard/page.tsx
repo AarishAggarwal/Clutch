@@ -38,11 +38,12 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const firstName = session.user.name?.split(" ")[0] || "there";
 
-  const [essayCount, activityCount, profile, recentEssays] = await Promise.all([
+  const [essayCount, activityCount, profile, recentEssays, notifications] = await Promise.all([
     prisma.essay.count({ where: { userId } }),
     prisma.activity.count({ where: { userId } }),
     prisma.studentProfile.findUnique({ where: { userId } }),
     prisma.essay.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 5 }),
+    prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
 
   const essayScore = clamp(Math.round((essayCount / 8) * 100), 0, 100);
@@ -108,6 +109,20 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {notifications.length ? (
+          <section className="panel p-5">
+            <div className="mb-3 text-sm font-semibold text-text-primary">Recent notifications</div>
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <Link key={n.id} href={n.link || "#"} className="block rounded-lg border border-border-subtle px-3 py-2 hover:bg-surface">
+                  <div className="text-sm font-medium text-text-primary">{n.title}</div>
+                  <div className="text-xs text-text-secondary">{n.body}</div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
           <section className="panel lg:col-span-3 p-8">

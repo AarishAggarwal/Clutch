@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { DM_Sans, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/shell/AppShell";
-import CounselorWidget from "@/components/counselor/CounselorWidget";
 import Providers from "@/components/Providers";
 
 const dmSans = DM_Sans({
@@ -46,7 +45,6 @@ export default function RootLayout({
         <Providers>
           <div className="flex h-full min-h-0 flex-col">
             <AppShell>{children}</AppShell>
-            <CounselorWidget />
           </div>
         </Providers>
       </body>
