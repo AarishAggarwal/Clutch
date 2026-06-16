@@ -552,7 +552,7 @@ export default function EssayWorkspace() {
               type="button"
               onClick={() => void deleteDraft()}
               disabled={deletePending || (!selected && !form.title.trim() && !form.plainText.trim())}
-              className="btn-secondary !px-2.5 !py-1.5 !text-xs !text-error hover:!border-red-200 hover:!bg-red-50 disabled:opacity-50"
+              className="btn-secondary !px-2.5 !py-1.5 !text-xs !text-error disabled:opacity-50"
             >
               <MaterialIcon name="delete" className="mr-1 !text-sm" />
               {selected ? "Delete" : "Discard"}
@@ -624,7 +624,7 @@ export default function EssayWorkspace() {
         </div>
 
         {saveError ? (
-          <div className="border-b border-border-subtle bg-red-50 px-5 py-2 text-sm text-error sm:px-6">{saveError}</div>
+          <div className="alert-error border-b border-border-subtle px-5 py-2 text-sm sm:px-6">{saveError}</div>
         ) : null}
 
         <div className="flex min-h-0 flex-1">

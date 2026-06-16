@@ -66,7 +66,7 @@ export default function NotificationsDropdown() {
       {open ? (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-border-subtle bg-white shadow-lg">
+          <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-border-subtle bg-elevated shadow-elevated">
             <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
               <span className="text-sm font-semibold">Notifications</span>
               {unread > 0 ? (
@@ -86,7 +86,7 @@ export default function NotificationsDropdown() {
                     onClick={() => void markRead(n.id, n.link)}
                     className={[
                       "block w-full border-b border-border-subtle px-4 py-3 text-left text-sm transition hover:bg-surface-container-high",
-                      n.readAt ? "opacity-70" : "bg-blue-50/40",
+                      n.readAt ? "opacity-70" : "bg-notification-unread",
                     ].join(" ")}
                   >
                     <div className="font-medium text-text-primary">{n.title}</div>

@@ -6,7 +6,7 @@ export default function EssaysPage() {
     <Suspense
       fallback={
         <div className="flex h-full items-center justify-center">
-          <p className="text-sm text-gray-500">Loading essay workspace…</p>
+          <p className="text-sm text-text-muted">Loading essay workspace…</p>
         </div>
       }
     >

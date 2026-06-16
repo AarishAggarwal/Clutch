@@ -23,7 +23,7 @@ export default function VersionHistoryPanel({ open, versions, onClose, onRestore
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/25 backdrop-blur-[2px]" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-overlay backdrop-blur-[2px]" onClick={onClose}>
       <div
         className="flex h-full w-full max-w-md flex-col border-l border-border-subtle bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}

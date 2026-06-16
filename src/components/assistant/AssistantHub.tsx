@@ -8,6 +8,18 @@ type Msg = { id: string; role: "user" | "assistant"; content: string; createdAt?
 
 type Tab = "essay_assistant" | "four_year_counselor";
 
+type EssayOption = {
+  id: string;
+  title: string;
+  essayType: string;
+  universitySlug?: string | null;
+  universityName?: string | null;
+  wordCount: number;
+  status: string;
+};
+
+type EssayCategory = "common" | "supplement";
+
 const CONFIG = {
   essay_assistant: {
     title: "Essay Assistant",
@@ -20,7 +32,7 @@ const CONFIG = {
       "Make this more concise",
       "Suggest a stronger conclusion",
     ],
-    contextNote: "Your active essay (title, prompt, limits, and text) is included automatically when you send a message.",
+    contextNote: "Select a draft below — its text, prompt, and word limit are sent with each message.",
   },
   four_year_counselor: {
     title: "4-Year Counselor",
@@ -55,7 +67,9 @@ export default function AssistantHub() {
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [essayId, setEssayId] = React.useState<string | undefined>();
+  const [essayId, setEssayId] = React.useState<string>("");
+  const [essays, setEssays] = React.useState<EssayOption[]>([]);
+  const [essayCategory, setEssayCategory] = React.useState<EssayCategory>("common");
   const listRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
 
@@ -63,18 +77,61 @@ export default function AssistantHub() {
   const messages = tab === "essay_assistant" ? essayMessages : counselorMessages;
   const setMessages = tab === "essay_assistant" ? setEssayMessages : setCounselorMessages;
 
+  const { commonEssays, supplementEssays } = React.useMemo(() => ({
+    commonEssays: essays.filter((e) => e.essayType.includes("common") || !e.universitySlug),
+    supplementEssays: essays.filter((e) => e.universitySlug || e.essayType.includes("supplement")),
+  }), [essays]);
+  const filteredEssays = essayCategory === "common" ? commonEssays : supplementEssays;
+  const selectedEssay = essays.find((e) => e.id === essayId) ?? null;
+
+  React.useEffect(() => {
+    void (async () => {
+      const res = await fetch("/api/essays");
+      if (!res.ok) return;
+      const data = (await res.json()) as { essays: EssayOption[] };
+      setEssays(data.essays ?? []);
+    })();
+  }, []);
+
   React.useEffect(() => {
     const stored = window.localStorage.getItem("activeEssayId");
-    if (stored && !essayId) setEssayId(stored);
+    if (stored && essays.some((e) => e.id === stored)) {
+      setEssayId(stored);
+      const essay = essays.find((e) => e.id === stored);
+      if (essay) {
+        setEssayCategory(essay.universitySlug || essay.essayType.includes("supplement") ? "supplement" : "common");
+      }
+    }
+  }, [essays]);
+
+  React.useEffect(() => {
+    const eid = searchParams.get("essayId");
+    if (eid && essays.some((e) => e.id === eid)) {
+      setEssayId(eid);
+      const essay = essays.find((e) => e.id === eid);
+      if (essay) {
+        setEssayCategory(essay.universitySlug || essay.essayType.includes("supplement") ? "supplement" : "common");
+      }
+    }
+  }, [searchParams, essays]);
+
+  React.useEffect(() => {
+    if (!essayId) return;
+    window.localStorage.setItem("activeEssayId", essayId);
   }, [essayId]);
 
   React.useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "counselor") setTab("four_year_counselor");
     else if (tabParam === "essay-assistant" || tabParam === "essay") setTab("essay_assistant");
-    const eid = searchParams.get("essayId");
-    if (eid) setEssayId(eid);
   }, [searchParams]);
+
+  React.useEffect(() => {
+    if (tab !== "essay_assistant") return;
+    if (essayId && filteredEssays.some((e) => e.id === essayId)) return;
+    if (filteredEssays[0]) setEssayId(filteredEssays[0].id);
+    else setEssayId("");
+  }, [essayCategory, tab, filteredEssays, essayId]);
 
   React.useEffect(() => {
     void (async () => {
@@ -112,7 +169,7 @@ export default function AssistantHub() {
     setError(null);
     try {
       const endpoint = tab === "essay_assistant" ? "/api/essay-assistant/chat" : "/api/counselor/chat";
-      const body = tab === "essay_assistant" ? { message: text, essayId } : { message: text };
+      const body = tab === "essay_assistant" ? { message: text, essayId: essayId || undefined } : { message: text };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,7 +289,7 @@ export default function AssistantHub() {
           ) : null}
 
           {error ? (
-            <div className="mx-auto max-w-4xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="alert-error mx-auto max-w-4xl rounded-lg px-4 py-3 text-sm">
               {error}
             </div>
           ) : null}
@@ -241,6 +298,46 @@ export default function AssistantHub() {
 
       <footer className="shrink-0 border-t border-border-subtle bg-surface px-4 py-4 sm:px-8">
         <div className="mx-auto max-w-4xl">
+          {tab === "essay_assistant" ? (
+            <div className="mb-3 flex flex-wrap items-end gap-3">
+              <div className="w-full sm:w-auto sm:min-w-[10rem]">
+                <label className="field-label">Essay type</label>
+                <select
+                  className="input-base !text-xs"
+                  value={essayCategory}
+                  onChange={(e) => setEssayCategory(e.target.value as EssayCategory)}
+                >
+                  <option value="common">Common App</option>
+                  <option value="supplement">Supplements</option>
+                </select>
+              </div>
+              <div className="min-w-0 flex-1 sm:min-w-[14rem]">
+                <label className="field-label">Draft to review</label>
+                <select
+                  className="input-base !text-xs"
+                  value={essayId}
+                  onChange={(e) => setEssayId(e.target.value)}
+                  disabled={!filteredEssays.length}
+                >
+                  {!filteredEssays.length ? (
+                    <option value="">No drafts in this category</option>
+                  ) : (
+                    filteredEssays.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.title || "Untitled"} ({e.wordCount} words)
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              {selectedEssay ? (
+                <p className="pb-2 text-xs text-text-muted">
+                  Reviewing: <span className="font-medium text-text-secondary">{selectedEssay.title}</span>
+                  {selectedEssay.universityName ? ` · ${selectedEssay.universityName}` : ""}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="flex items-end gap-2 rounded-2xl border border-border-subtle bg-surface-container-high p-2 shadow-sm focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
             <textarea
               ref={inputRef}

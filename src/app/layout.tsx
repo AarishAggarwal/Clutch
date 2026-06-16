@@ -3,6 +3,7 @@ import { DM_Sans, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/shell/AppShell";
 import Providers from "@/components/Providers";
+import { themeInitScript } from "@/lib/theme";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -34,8 +35,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full ${dmSans.variable} ${fraunces.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`h-full ${dmSans.variable} ${fraunces.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
           rel="stylesheet"

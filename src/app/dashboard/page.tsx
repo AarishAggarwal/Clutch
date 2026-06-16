@@ -166,15 +166,15 @@ export default async function DashboardPage() {
           <section className="panel lg:col-span-2 p-6">
             <h2 className="mb-6 text-lg font-semibold text-text-primary">Quick actions</h2>
             <div className="space-y-3">
-              <Link href="/essays" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-white px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
+              <Link href="/essays" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-surface-container-lowest px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
                 <span className="material-symbols-outlined text-primary">description</span>
                 Start or edit an essay
               </Link>
-              <Link href="/universities" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-white px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
+              <Link href="/universities" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-surface-container-lowest px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
                 <span className="material-symbols-outlined text-primary">account_balance</span>
                 Explore universities
               </Link>
-              <Link href="/application-preview" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-white px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
+              <Link href="/application-preview" className="flex items-center gap-3 rounded-lg border border-border-subtle bg-surface-container-lowest px-4 py-3 text-sm font-medium transition hover:border-primary hover:-translate-y-px">
                 <span className="material-symbols-outlined text-primary">preview</span>
                 Application preview
               </Link>

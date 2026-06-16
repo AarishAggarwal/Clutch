@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import * as React from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 import { RoleLoginDropdown, RoleSignupDropdown } from "@/components/landing/RoleAuthMenus";
 
 const nav = [
@@ -35,6 +36,7 @@ export function LandingHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <RoleSignupDropdown
             open={openMenu === "signup"}
             onToggle={() => setOpenMenu((m) => (m === "signup" ? null : "signup"))}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import MaterialIcon from "@/components/shell/MaterialIcon";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -15,7 +15,10 @@ type SearchResult = {
   universities: Array<{ id: string; name: string; href: string }>;
 };
 
-function breadcrumbLabel(pathname: string) {
+function breadcrumbLabel(pathname: string, tab: string | null) {
+  if (pathname.startsWith("/resources")) {
+    return tab === "counselor" ? "4-Year Counselor" : "Essay Assistant";
+  }
   const map: Record<string, string> = {
     "/dashboard": "Dashboard",
     "/universities": "University List",
@@ -41,9 +44,11 @@ function breadcrumbLabel(pathname: string) {
 
 export default function TopBar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const label = breadcrumbLabel(pathname);
+  const hideSearch = pathname.startsWith("/resources");
+  const label = breadcrumbLabel(pathname, searchParams.get("tab"));
   const firstName = session?.user?.name?.split(" ")[0] || "there";
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult | null>(null);
@@ -67,6 +72,7 @@ export default function TopBar() {
   return (
     <header className="fixed left-[240px] right-0 top-[38px] z-40 flex h-[52px] items-center justify-between border-b border-border-subtle bg-surface px-8">
       <div className="relative flex flex-1 items-center gap-4">
+        {!hideSearch ? (
         <div className="relative hidden w-full max-w-md sm:block">
           <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-text-muted" />
           <input
@@ -79,10 +85,10 @@ export default function TopBar() {
             onFocus={() => setSearchOpen(true)}
             onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
             placeholder="Search essays, comments, universities…"
-            className="w-full rounded-lg border border-border-subtle bg-white py-1.5 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+            className="input-base !py-1.5 !pl-10"
           />
           {searchOpen && results && query.trim().length >= 2 ? (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border-subtle bg-white shadow-lg">
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border-subtle bg-elevated shadow-elevated">
               {results.essays.length > 0 ? (
                 <div className="border-b border-border-subtle p-2">
                   <div className="px-2 py-1 text-[10px] font-bold uppercase text-text-muted">Essays</div>
@@ -134,6 +140,11 @@ export default function TopBar() {
             </div>
           ) : null}
         </div>
+        ) : (
+          <nav className="hidden items-center gap-2 text-sm font-medium text-text-primary sm:flex">
+            <span>{label}</span>
+          </nav>
+        )}
         <nav className="flex items-center gap-2 text-sm text-text-secondary sm:hidden">
           <span>{label}</span>
         </nav>

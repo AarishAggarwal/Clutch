@@ -31,11 +31,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <React.Suspense fallback={<aside className="fixed bottom-0 left-0 top-0 z-40 w-[240px] bg-[#0D1117]" />}>
+      <React.Suspense fallback={<aside className="fixed bottom-0 left-0 top-0 z-40 w-[240px] bg-sidebar-bg" />}>
         <Sidebar role={portalRole} />
       </React.Suspense>
       <RoleBar role={portalRole} />
-      <TopBar />
+      <React.Suspense fallback={<header className="fixed left-[240px] right-0 top-[38px] z-40 h-[52px] border-b border-border-subtle bg-surface" />}>
+        <TopBar />
+      </React.Suspense>
       <main className="ml-[240px] min-h-0 flex-1 overflow-hidden bg-background pt-[90px]">
         {children}
       </main>

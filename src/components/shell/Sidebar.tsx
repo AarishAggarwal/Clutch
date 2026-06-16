@@ -52,8 +52,8 @@ function NavLink({ item, pathname, searchTab }: { item: NavItem; pathname: strin
       className={[
         "flex items-center gap-3 px-4 py-2 text-sm transition-all duration-200",
         isActive
-          ? "scale-[0.98] border-l-2 border-primary-container bg-sidebar-active text-white"
-          : "text-text-muted hover:bg-sidebar-active hover:text-white",
+          ? "scale-[0.98] border-l-2 border-primary bg-sidebar-active text-sidebar-text"
+          : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text",
       ].join(" ")}
     >
       <MaterialIcon name={item.icon} className="text-[20px]" filled={isActive} />
@@ -71,12 +71,12 @@ export default function Sidebar({ role }: { role: "student" | "counselor" }) {
   const brandHref = isCounselor ? "/counselor/dashboard" : "/dashboard";
 
   return (
-    <aside className="fixed bottom-0 left-0 top-0 z-40 flex w-[240px] flex-col border-r border-white/10 bg-[#0D1117]">
+    <aside className="fixed bottom-0 left-0 top-0 z-40 flex w-[240px] flex-col border-r border-sidebar-border bg-sidebar-bg">
       <div className="p-6">
-        <Link href={brandHref} className="text-xl font-semibold tracking-tight text-white">
+        <Link href={brandHref} className="text-xl font-semibold tracking-tight text-sidebar-text">
           Clutch
         </Link>
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted">
           {isCounselor ? "Counsellor Portal" : "Student Portal"}
         </p>
       </div>
@@ -84,18 +84,18 @@ export default function Sidebar({ role }: { role: "student" | "counselor" }) {
       <nav className="flex-1 overflow-y-auto px-0">
         {!isCounselor ? (
           <>
-            <div className="mb-2 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Main Menu</div>
+            <div className="mb-2 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted">Main Menu</div>
             {studentMain.map((item) => (
               <NavLink key={item.href} item={item} pathname={pathname} searchTab={searchTab} />
             ))}
-            <div className="mb-2 mt-6 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Resources</div>
+            <div className="mb-2 mt-6 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted">Resources</div>
             {studentResources.map((item) => (
               <NavLink key={item.href} item={item} pathname={pathname} searchTab={searchTab} />
             ))}
           </>
         ) : (
           <>
-            <div className="mb-2 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Main Menu</div>
+            <div className="mb-2 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted">Main Menu</div>
             {counselorNav.map((item) => (
               <NavLink key={item.href} item={item} pathname={pathname} searchTab={searchTab} />
             ))}
@@ -103,13 +103,13 @@ export default function Sidebar({ role }: { role: "student" | "counselor" }) {
         )}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-sidebar-border p-4">
         <div className="rounded-lg bg-sidebar-active p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Signed in as</p>
-          <p className="mt-1 truncate text-sm font-bold text-white">{session?.user?.name || session?.user?.email || "User"}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-sidebar-muted">Signed in as</p>
+          <p className="mt-1 truncate text-sm font-bold text-sidebar-text">{session?.user?.name || session?.user?.email || "User"}</p>
           <button
             type="button"
-            className="mt-3 w-full rounded-lg bg-primary-container py-2 text-[11px] font-bold text-white transition hover:brightness-110"
+            className="mt-3 w-full rounded-lg bg-primary py-2 text-[11px] font-bold text-white transition hover:brightness-110"
           >
             Upgrade to Pro
           </button>
@@ -118,7 +118,7 @@ export default function Sidebar({ role }: { role: "student" | "counselor" }) {
           <button
             type="button"
             onClick={() => void signOut({ callbackUrl: "/" })}
-            className="flex items-center gap-3 px-4 py-2 text-xs text-text-muted transition hover:text-white"
+            className="flex items-center gap-3 px-4 py-2 text-xs text-sidebar-muted transition hover:text-sidebar-text"
           >
             <MaterialIcon name="logout" className="!text-sm" />
             Logout

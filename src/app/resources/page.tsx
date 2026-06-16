@@ -6,7 +6,7 @@ export default function ResourcesPage() {
     <Suspense
       fallback={
         <div className="flex h-full items-center justify-center">
-          <p className="text-sm text-gray-500">Loading assistants…</p>
+          <p className="text-sm text-text-muted">Loading assistants…</p>
         </div>
       }
     >
