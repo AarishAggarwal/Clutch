@@ -8,6 +8,7 @@ import { limitStatus, parseLimitFromPrompt } from "@/lib/essayLimits";
 import EssayRichEditor, { type EssayEditorSelection } from "@/components/essays/EssayRichEditor";
 import EssayCommentsPanel, { type EssayComment } from "@/components/essays/EssayCommentsPanel";
 import VersionHistoryPanel, { type EssayVersion } from "@/components/essays/VersionHistoryPanel";
+import MaterialIcon from "@/components/shell/MaterialIcon";
 
 type Essay = {
   id: string;
@@ -107,9 +108,7 @@ export default function EssayWorkspace() {
   }, []);
 
   React.useEffect(() => {
-    if (selectedId) {
-      window.localStorage.setItem("activeEssayId", selectedId);
-    }
+    if (selectedId) window.localStorage.setItem("activeEssayId", selectedId);
   }, [selectedId]);
 
   React.useEffect(() => {
@@ -144,13 +143,6 @@ export default function EssayWorkspace() {
     void loadComments(selected.id);
     dirtyRef.current = false;
   }, [selectedId]);
-
-  const limit = limitStatus({
-    limitType: (form.limitType as "word" | "character" | null) ?? null,
-    limitValue: form.limitValue,
-    wordCount: selected?.wordCount ?? 0,
-    characterCount: selected?.characterCount ?? 0,
-  });
 
   const liveLimit = limitStatus({
     limitType: (form.limitType as "word" | "character" | null) ?? null,
@@ -362,40 +354,67 @@ export default function EssayWorkspace() {
 
   const commonRows = rows.filter((r) => r.essayType.includes("common") || !r.universitySlug);
   const supplementRows = rows.filter((r) => r.universitySlug || r.essayType.includes("supplement"));
+  const listRows = tab === "common" ? commonRows : supplementRows;
 
   const promptText = form.promptText ?? "";
   const promptPreview = promptText.length > 420 && !promptExpanded ? `${promptText.slice(0, 420)}…` : promptText;
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#f8f9fb]">
-      {!sidebarCollapsed ? (
-        <aside className="flex w-56 shrink-0 flex-col border-r border-gray-200 bg-white">
-          <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Essays</span>
-            <button type="button" onClick={() => setSidebarCollapsed(true)} className="text-xs text-gray-400 hover:text-gray-700">
-              Hide
+    <div className="essay-shell flex h-full overflow-hidden">
+      {sidebarCollapsed ? (
+        <div className="essay-rail-collapse">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(false)}
+            className="essay-rail-expand-btn"
+            title="Show essay list"
+            aria-label="Expand essay sidebar"
+          >
+            <MaterialIcon name="chevron_right" className="!text-xl" />
+          </button>
+          <span
+            className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-text-muted"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            Essays
+          </span>
+        </div>
+      ) : (
+        <aside className="essay-rail flex w-60 shrink-0 flex-col border-r xl:w-64">
+          <div className="flex items-center justify-between border-b border-border-subtle px-3 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">Your essays</span>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(true)}
+              className="essay-rail-expand-btn !h-8 !w-8"
+              title="Hide essay list"
+              aria-label="Collapse essay sidebar"
+            >
+              <MaterialIcon name="chevron_left" className="!text-lg" />
             </button>
           </div>
-          <div className="flex border-b border-gray-200">
+
+          <div className="nav-pill mx-3 mt-3">
             <button
               type="button"
               onClick={() => setTab("common")}
-              className={["flex-1 py-2 text-xs font-medium", tab === "common" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"].join(" ")}
+              className={["nav-pill-link flex-1 text-center !text-xs", tab === "common" ? "nav-pill-link--active" : ""].join(" ")}
             >
               Common App
             </button>
             <button
               type="button"
               onClick={() => setTab("university")}
-              className={["flex-1 py-2 text-xs font-medium", tab === "university" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"].join(" ")}
+              className={["nav-pill-link flex-1 text-center !text-xs", tab === "university" ? "nav-pill-link--active" : ""].join(" ")}
             >
               Supplements
             </button>
           </div>
+
           {tab === "university" ? (
-            <div className="space-y-2 border-b border-gray-100 p-3">
-              <select value={selectedUniversitySlug} onChange={(e) => setSelectedUniversitySlug(e.target.value)} className="w-full rounded border border-gray-200 px-2 py-1 text-xs">
-                <option value="">University</option>
+            <div className="space-y-2 border-b border-border-subtle px-3 py-3">
+              <select value={selectedUniversitySlug} onChange={(e) => setSelectedUniversitySlug(e.target.value)} className="input-base !text-xs">
+                <option value="">Select university</option>
                 {savedUniversitySlugs.map((slug) => {
                   const uni = universities.find((u) => u.slug === slug);
                   return uni ? (
@@ -405,124 +424,129 @@ export default function EssayWorkspace() {
                   ) : null;
                 })}
               </select>
-              <select value={selectedPromptId} onChange={(e) => setSelectedPromptId(e.target.value)} className="w-full rounded border border-gray-200 px-2 py-1 text-xs" disabled={!selectedUniversity}>
-                <option value="">Prompt</option>
+              <select value={selectedPromptId} onChange={(e) => setSelectedPromptId(e.target.value)} className="input-base !text-xs" disabled={!selectedUniversity}>
+                <option value="">Select prompt</option>
                 {promptList.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.question.slice(0, 60)}…
+                    {p.question.slice(0, 55)}…
                   </option>
                 ))}
               </select>
               {!promptList.length ? (
-                <textarea value={customPromptText} onChange={(e) => setCustomPromptText(e.target.value)} placeholder="Paste prompt" className="h-16 w-full resize-none rounded border border-gray-200 px-2 py-1 text-xs" />
+                <textarea value={customPromptText} onChange={(e) => setCustomPromptText(e.target.value)} placeholder="Paste the official prompt" className="input-base h-16 resize-none !text-xs" />
               ) : null}
-              <button type="button" onClick={createSupplementDraft} className="w-full rounded bg-blue-600 py-1.5 text-xs text-white">
+              <button type="button" onClick={createSupplementDraft} className="btn-primary w-full !py-2 !text-xs">
                 New supplement
               </button>
             </div>
           ) : (
-            <div className="border-b border-gray-100 p-3">
+            <div className="border-b border-border-subtle px-3 py-3">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedId(null);
                   setForm(emptyForm);
                 }}
-                className="w-full rounded border border-gray-200 py-1.5 text-xs hover:bg-gray-50"
+                className="btn-secondary w-full !text-xs"
               >
-                + New Common App essay
+                <MaterialIcon name="add" className="mr-1 !text-sm" />
+                New essay
               </button>
             </div>
           )}
+
           <div className="flex-1 overflow-y-auto p-2">
-            {(tab === "common" ? commonRows : supplementRows).map((row) => (
-              <button
-                key={row.id}
-                type="button"
-                onClick={() => setSelectedId(row.id)}
-                className={["mb-1 w-full rounded px-2 py-2 text-left text-xs", selectedId === row.id ? "bg-blue-50 text-blue-800" : "hover:bg-gray-50"].join(" ")}
-              >
-                <div className="truncate font-medium">{row.title}</div>
-                <div className="text-gray-500">{row.wordCount} words</div>
-              </button>
-            ))}
+            {listRows.length === 0 ? (
+              <div className="empty-state !p-3 !text-xs">No essays yet. Create one to get started.</div>
+            ) : (
+              listRows.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => setSelectedId(row.id)}
+                  className={["list-selectable mb-1.5 !px-3 !py-2.5", selectedId === row.id ? "list-selectable--active" : ""].join(" ")}
+                >
+                  <div className="truncate text-sm font-medium text-text-primary">{row.title || "Untitled"}</div>
+                  <div className="section-meta mt-0.5">
+                    {row.wordCount} words · {row.status}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </aside>
-      ) : (
-        <button type="button" onClick={() => setSidebarCollapsed(false)} className="w-8 shrink-0 border-r border-gray-200 bg-white text-xs text-gray-500 hover:bg-gray-50">
-          ›
-        </button>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-6 py-3">
+        <header className="essay-doc-header flex flex-wrap items-center gap-3 border-b px-5 py-3 sm:px-6">
           <input
             value={form.title}
             onChange={(e) => {
               setForm((s) => ({ ...s, title: e.target.value }));
               scheduleAutosave();
             }}
-            placeholder="Essay title"
-            className="min-w-[12rem] flex-1 border-0 bg-transparent text-lg font-medium outline-none"
+            placeholder="Untitled essay"
+            className="min-w-0 flex-1 border-0 bg-transparent font-display text-lg font-semibold tracking-tight text-text-primary outline-none placeholder:text-text-muted"
           />
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            {saveState === "saving" ? <span>Saving…</span> : null}
-            {saveState === "saved" ? <span className="text-green-600">Saved ✓</span> : null}
-            {saveState === "error" ? <span className="text-red-600">Save failed</span> : null}
-            <button type="button" onClick={() => void openVersions()} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">
+          <div className="flex flex-wrap items-center gap-2">
+            {saveState === "saving" ? <span className="badge-neutral essay-status-saving">Saving…</span> : null}
+            {saveState === "saved" ? <span className="badge-accent essay-status-saved">Saved</span> : null}
+            {saveState === "error" ? <span className="badge-neutral !text-error">Save failed</span> : null}
+            {form.status ? <span className="badge-neutral capitalize">{form.status}</span> : null}
+            <button type="button" onClick={() => void openVersions()} className="btn-secondary !px-2.5 !py-1.5 !text-xs">
+              <MaterialIcon name="history" className="mr-1 !text-sm" />
               History
             </button>
-            <button
-              type="button"
-              onClick={() => void submitEssay()}
-              disabled={liveLimit.exceeded}
-              className="rounded bg-gray-900 px-3 py-1.5 text-white disabled:opacity-40"
-            >
+            <button type="button" onClick={() => void submitEssay()} disabled={liveLimit.exceeded} className="btn-primary !px-3 !py-1.5 !text-xs disabled:opacity-45">
               Submit
             </button>
           </div>
         </header>
 
         {promptText ? (
-          <div className="border-b border-gray-100 bg-gray-50 px-6 py-3 text-sm text-gray-700">
-            <div className="font-medium text-gray-900">Prompt</div>
-            <p className="mt-1 whitespace-pre-wrap">{promptPreview}</p>
+          <div className="border-b border-border-subtle bg-surface-container-low px-5 py-3 sm:px-6">
+            <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">Prompt</div>
+            <p className="mt-1.5 text-sm leading-relaxed text-text-secondary whitespace-pre-wrap">{promptPreview}</p>
             {promptText.length > 420 ? (
-              <button type="button" onClick={() => setPromptExpanded((v) => !v)} className="mt-1 text-xs text-blue-600 hover:underline">
+              <button type="button" onClick={() => setPromptExpanded((v) => !v)} className="mt-2 text-xs font-medium text-primary hover:underline">
                 {promptExpanded ? "Show less" : "Show more"}
               </button>
             ) : null}
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-2 text-sm">
-          <div className={liveLimit.exceeded ? "font-medium text-red-600" : "text-gray-600"}>
-            {liveLimit.max
-              ? `${liveLimit.current} / ${liveLimit.max} ${liveLimit.unit}`
-              : `${countWordsLocal(form.plainText)} words`}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-surface px-5 py-2.5 sm:px-6">
+          <div className={liveLimit.exceeded ? "essay-limit-over text-sm font-medium" : "essay-limit-ok text-sm"}>
+            <span className="font-data-mono font-medium text-text-primary">
+              {liveLimit.max ? `${liveLimit.current} / ${liveLimit.max}` : countWordsLocal(form.plainText)}
+            </span>
+            <span className="ml-1">{liveLimit.max ? liveLimit.unit : "words"}</span>
             {liveLimit.remaining != null && liveLimit.remaining >= 0 ? (
-              <span className="ml-2 text-gray-500">
-                · {liveLimit.remaining} {liveLimit.unit} remaining
-              </span>
+              <span className="ml-2 text-text-muted">· {liveLimit.remaining} remaining</span>
             ) : null}
-            {liveLimit.exceeded ? <span className="ml-2">— You have exceeded the essay limit.</span> : null}
+            {liveLimit.exceeded ? <span className="ml-2 font-medium">— Limit exceeded</span> : null}
           </div>
+
           {selection ? (
             <div className="flex items-center gap-2">
               <input
                 value={newCommentText}
                 onChange={(e) => setNewCommentText(e.target.value)}
-                placeholder="Add comment on selection…"
-                className="rounded border border-gray-200 px-2 py-1 text-xs"
+                placeholder="Comment on selection…"
+                className="input-base !w-48 !py-1.5 !text-xs sm:!w-64"
               />
-              <button type="button" onClick={() => void addComment()} className="rounded bg-yellow-400 px-2 py-1 text-xs font-medium">
-                Comment
+              <button type="button" onClick={() => void addComment()} className="btn-primary !px-3 !py-1.5 !text-xs">
+                Add comment
               </button>
             </div>
-          ) : null}
+          ) : (
+            <span className="hidden text-xs text-text-muted sm:inline">Select text to add a comment</span>
+          )}
         </div>
 
-        {saveError ? <div className="bg-red-50 px-6 py-2 text-sm text-red-700">{saveError}</div> : null}
+        {saveError ? (
+          <div className="border-b border-border-subtle bg-red-50 px-5 py-2 text-sm text-error sm:px-6">{saveError}</div>
+        ) : null}
 
         <div className="flex min-h-0 flex-1">
           <EssayRichEditor

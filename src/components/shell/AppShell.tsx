@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import RoleBar from "@/components/shell/RoleBar";
@@ -30,7 +31,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Sidebar role={portalRole} />
+      <React.Suspense fallback={<aside className="fixed bottom-0 left-0 top-0 z-40 w-[240px] bg-[#0D1117]" />}>
+        <Sidebar role={portalRole} />
+      </React.Suspense>
       <RoleBar role={portalRole} />
       <TopBar />
       <main className="ml-[240px] min-h-0 flex-1 overflow-hidden bg-background pt-[90px]">

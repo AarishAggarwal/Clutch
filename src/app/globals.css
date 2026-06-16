@@ -298,6 +298,85 @@ body {
   .expandable-trigger:hover {
     background: color-mix(in oklab, var(--bg-muted) 45%, transparent);
   }
+
+  /* Essay workspace — Google Docs–inspired document shell */
+  .essay-shell {
+    background: var(--bg-app);
+    color: var(--text-primary);
+  }
+
+  .essay-rail {
+    background: var(--bg-elevated);
+    border-color: var(--border-soft);
+  }
+
+  .essay-rail-collapse {
+    @apply flex h-full w-10 shrink-0 flex-col items-center border-r py-3;
+    background: var(--bg-elevated);
+    border-color: var(--border-soft);
+  }
+
+  .essay-rail-expand-btn {
+    @apply flex h-9 w-9 items-center justify-center rounded-lg border transition;
+    border-color: var(--border-soft);
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+  }
+
+  .essay-rail-expand-btn:hover {
+    border-color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 8%, var(--bg-elevated));
+    color: var(--accent-strong);
+  }
+
+  .essay-doc-header {
+    background: var(--bg-elevated);
+    border-color: var(--border-soft);
+  }
+
+  .essay-doc-paper {
+    background: var(--bg-elevated);
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 8px 24px rgba(16, 24, 40, 0.04);
+  }
+
+  .essay-toolbar {
+    background: var(--bg-muted);
+    border-color: var(--border-soft);
+  }
+
+  .essay-toolbar-btn {
+    @apply rounded-md px-2.5 py-1.5 text-xs font-medium transition;
+    color: var(--text-secondary);
+  }
+
+  .essay-toolbar-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  .essay-toolbar-btn--active {
+    background: var(--bg-elevated);
+    color: var(--accent-strong);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  }
+
+  .essay-status-saving {
+    color: var(--text-muted);
+  }
+
+  .essay-status-saved {
+    color: var(--safety-green);
+  }
+
+  .essay-limit-ok {
+    color: var(--text-secondary);
+  }
+
+  .essay-limit-over {
+    color: var(--danger);
+  }
 }
 
 /* University profile page — reference-inspired cream + forest metrics */

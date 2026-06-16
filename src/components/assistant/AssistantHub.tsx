@@ -2,10 +2,49 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
+import MaterialIcon from "@/components/shell/MaterialIcon";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string; createdAt?: string };
 
 type Tab = "essay_assistant" | "four_year_counselor";
+
+const CONFIG = {
+  essay_assistant: {
+    title: "Essay Assistant",
+    subtitle: "Brainstorming, grammar, tone, and college-specific essay feedback.",
+    icon: "edit_note",
+    placeholder: "Ask about your essay — e.g. improve paragraph 2 or adjust tone…",
+    suggestions: [
+      "Improve my opening paragraph",
+      "Check grammar and clarity",
+      "Make this more concise",
+      "Suggest a stronger conclusion",
+    ],
+    contextNote: "Your active essay (title, prompt, limits, and text) is included automatically when you send a message.",
+  },
+  four_year_counselor: {
+    title: "4-Year Counselor",
+    subtitle: "Common App, UC, UK and Indian admissions, timelines, and extracurricular strategy.",
+    icon: "school",
+    placeholder: "Ask about your application plan — e.g. course selection or timeline…",
+    suggestions: [
+      "What should I prioritize in grade 11?",
+      "How do I balance reach and safety schools?",
+      "Help me plan my extracurriculars",
+      "Explain UC vs Common App differences",
+    ],
+    contextNote: "General admissions guidance — share your grade, interests, and goals for tailored advice.",
+  },
+} as const;
+
+function formatTime(iso?: string) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  } catch {
+    return null;
+  }
+}
 
 export default function AssistantHub() {
   const searchParams = useSearchParams();
@@ -18,14 +57,16 @@ export default function AssistantHub() {
   const [error, setError] = React.useState<string | null>(null);
   const [essayId, setEssayId] = React.useState<string | undefined>();
   const listRef = React.useRef<HTMLDivElement | null>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
 
+  const config = CONFIG[tab];
   const messages = tab === "essay_assistant" ? essayMessages : counselorMessages;
   const setMessages = tab === "essay_assistant" ? setEssayMessages : setCounselorMessages;
 
   React.useEffect(() => {
     const stored = window.localStorage.getItem("activeEssayId");
     if (stored && !essayId) setEssayId(stored);
-  }, []);
+  }, [essayId]);
 
   React.useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -56,8 +97,13 @@ export default function AssistantHub() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send() {
-    const text = input.trim();
+  React.useEffect(() => {
+    setError(null);
+    setInput("");
+  }, [tab]);
+
+  async function send(textOverride?: string) {
+    const text = (textOverride ?? input).trim();
     if (!text || loading) return;
     const user: Msg = { id: `u-${Date.now()}`, role: "user", content: text };
     setMessages((m) => [...m, user]);
@@ -66,10 +112,7 @@ export default function AssistantHub() {
     setError(null);
     try {
       const endpoint = tab === "essay_assistant" ? "/api/essay-assistant/chat" : "/api/counselor/chat";
-      const body =
-        tab === "essay_assistant"
-          ? { message: text, essayId }
-          : { message: text };
+      const body = tab === "essay_assistant" ? { message: text, essayId } : { message: text };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,110 +140,137 @@ export default function AssistantHub() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
+      inputRef.current?.focus();
     }
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#f8f9fb]">
-      <aside className="flex w-52 shrink-0 flex-col border-r border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Assistants
-        </div>
-        <button
-          type="button"
-          onClick={() => setTab("essay_assistant")}
-          className={[
-            "px-4 py-3 text-left text-sm",
-            tab === "essay_assistant" ? "bg-blue-50 font-medium text-blue-800" : "text-gray-600 hover:bg-gray-50",
-          ].join(" ")}
-        >
-          Essay Assistant
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("four_year_counselor")}
-          className={[
-            "px-4 py-3 text-left text-sm",
-            tab === "four_year_counselor" ? "bg-blue-50 font-medium text-blue-800" : "text-gray-600 hover:bg-gray-50",
-          ].join(" ")}
-        >
-          4-Year Counselor
-        </button>
-        {tab === "essay_assistant" ? (
-          <div className="mt-auto border-t border-gray-100 p-3 text-xs text-gray-500">
-            Open an essay in Essays — context (text, prompt, limits) is sent automatically when you chat.
+    <div className="flex h-full flex-col overflow-hidden bg-surface-container-low">
+      <header className="shrink-0 border-b border-border-subtle bg-surface px-6 py-5 sm:px-8">
+        <div className="mx-auto flex max-w-4xl items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-container text-white shadow-sm">
+            <MaterialIcon name={config.icon} className="text-[22px]" />
           </div>
-        ) : (
-          <div className="mt-auto border-t border-gray-100 p-3 text-xs text-gray-500">
-            Common App, UC, UK, India, timelines, ECs, and course strategy.
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-semibold tracking-tight text-text-primary">{config.title}</h1>
+            <p className="mt-0.5 text-sm leading-relaxed text-text-secondary">{config.subtitle}</p>
+            <p className="mt-2 text-xs text-text-muted">{config.contextNote}</p>
           </div>
-        )}
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col px-4 py-4 sm:px-6">
-        <div className="mb-3">
-          <h1 className="text-xl font-semibold text-gray-900">
-            {tab === "essay_assistant" ? "Essay Assistant" : "4-Year Counselor"}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {tab === "essay_assistant"
-              ? "Brainstorming, grammar, tone, and college-specific essay feedback."
-              : "Application strategy, timelines, and extracurricular planning."}
-          </p>
         </div>
+      </header>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-            <div className="mx-auto w-full max-w-3xl space-y-4">
-              {messages.length === 0 ? (
-                <div className="rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-500">
-                  {tab === "essay_assistant"
-                    ? "Try: Improve paragraph 2 and make the opening more vivid."
-                    : "Try: I am in grade 11 interested in CS. What should I prioritize this month?"}
+      <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        <div className="mx-auto max-w-4xl space-y-6">
+          {messages.length === 0 && !loading ? (
+            <div className="rounded-2xl border border-border-subtle bg-surface px-5 py-6 shadow-sm">
+              <p className="text-sm font-medium text-text-primary">How can I help you today?</p>
+              <p className="mt-1 text-sm text-text-secondary">Choose a prompt below or type your own question.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {config.suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => void send(s)}
+                    className="rounded-full border border-border-subtle bg-surface-container-high px-3.5 py-2 text-left text-xs text-text-secondary transition hover:border-primary/30 hover:bg-primary/5 hover:text-text-primary"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {messages.map((m) => {
+            const isUser = m.role === "user";
+            const time = formatTime(m.createdAt);
+            return (
+              <div key={m.id} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
+                <div
+                  className={[
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                    isUser
+                      ? "bg-primary-fixed text-primary"
+                      : "border border-border-subtle bg-surface text-text-secondary",
+                  ].join(" ")}
+                  aria-hidden
+                >
+                  {isUser ? "You" : <MaterialIcon name={config.icon} className="!text-base" />}
                 </div>
-              ) : null}
-              {messages.map((m) => (
-                <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                <div className={`min-w-0 max-w-[min(100%,42rem)] ${isUser ? "text-right" : ""}`}>
+                  <div className={`mb-1 flex items-center gap-2 text-[11px] font-medium text-text-muted ${isUser ? "justify-end" : ""}`}>
+                    <span>{isUser ? "You" : config.title}</span>
+                    {time ? <span>· {time}</span> : null}
+                  </div>
                   <div
-                    className={
-                      m.role === "user"
-                        ? "max-w-[82%] rounded-2xl bg-gray-900 px-4 py-3 text-sm text-white"
-                        : "max-w-[92%] rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900"
-                    }
+                    className={[
+                      "rounded-2xl px-4 py-3 text-left text-sm leading-relaxed",
+                      isUser
+                        ? "rounded-tr-md border border-primary/15 bg-primary-fixed text-text-primary"
+                        : "rounded-tl-md border border-border-subtle bg-surface text-text-primary shadow-sm",
+                    ].join(" ")}
                   >
                     <div className="whitespace-pre-wrap">{m.content}</div>
                   </div>
                 </div>
-              ))}
-              {loading ? <div className="text-sm text-gray-500">Thinking…</div> : null}
-              {error ? <div className="text-sm text-red-600">{error}</div> : null}
-            </div>
-          </div>
+              </div>
+            );
+          })}
 
-          <div className="border-t border-gray-200 px-4 py-3 sm:px-6">
-            <div className="mx-auto w-full max-w-3xl">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                    e.preventDefault();
-                    void send();
-                  }
-                }}
-                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                placeholder={tab === "essay_assistant" ? "Message Essay Assistant…" : "Message 4-Year Counselor…"}
-                rows={3}
-              />
-              <div className="mt-2 flex justify-end">
-                <button type="button" className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white disabled:opacity-50" onClick={() => void send()} disabled={loading || !input.trim()}>
-                  Send
-                </button>
+          {loading ? (
+            <div className="flex gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-surface text-text-secondary">
+                <MaterialIcon name={config.icon} className="!text-base" />
+              </div>
+              <div className="rounded-2xl rounded-tl-md border border-border-subtle bg-surface px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted [animation-delay:0ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted [animation-delay:150ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted [animation-delay:300ms]" />
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
+
+          {error ? (
+            <div className="mx-auto max-w-4xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
         </div>
       </div>
+
+      <footer className="shrink-0 border-t border-border-subtle bg-surface px-4 py-4 sm:px-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="flex items-end gap-2 rounded-2xl border border-border-subtle bg-surface-container-high p-2 shadow-sm focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void send();
+                }
+              }}
+              rows={1}
+              className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-text-muted"
+              placeholder={config.placeholder}
+            />
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={loading || !input.trim()}
+              className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-container text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Send message"
+            >
+              <MaterialIcon name="send" className="!text-lg" />
+            </button>
+          </div>
+          <p className="mt-2 text-center text-[11px] text-text-muted">
+            Enter to send · Shift+Enter for new line
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

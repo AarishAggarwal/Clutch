@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import MaterialIcon from "@/components/shell/MaterialIcon";
 
@@ -32,15 +32,19 @@ const counselorNav: NavItem[] = [
   { href: "/counselor/settings", label: "Settings", icon: "settings" },
 ];
 
-function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavLink({ item, pathname, searchTab }: { item: NavItem; pathname: string; searchTab: string | null }) {
   const hrefPath = item.href.split("?")[0];
   const active =
     pathname === hrefPath ||
     (hrefPath !== "/" && pathname.startsWith(hrefPath) && hrefPath !== "/counselor/students");
   const studentsActive = item.href === "/counselor/students" && pathname.startsWith("/counselor/students") && !pathname.startsWith("/counselor/students/add");
-  const resourcesActive = item.href.startsWith("/resources") && pathname.startsWith("/resources");
 
-  const isActive = item.href === "/counselor/students" ? studentsActive : item.href.startsWith("/resources") ? resourcesActive : active;
+  let isActive = item.href === "/counselor/students" ? studentsActive : active;
+  if (item.href.includes("tab=essay-assistant")) {
+    isActive = pathname.startsWith("/resources") && (searchTab === "essay-assistant" || searchTab === "essay" || !searchTab);
+  } else if (item.href.includes("tab=counselor")) {
+    isActive = pathname.startsWith("/resources") && searchTab === "counselor";
+  }
 
   return (
     <Link
@@ -60,6 +64,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 
 export default function Sidebar({ role }: { role: "student" | "counselor" }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchTab = searchParams.get("tab");
   const { data: session } = useSession();
   const isCounselor = role === "counselor";
   const brandHref = isCounselor ? "/counselor/dashboard" : "/dashboard";
@@ -80,18 +86,18 @@ export default function Sidebar({ role }: { role: "student" | "counselor" }) {
           <>
             <div className="mb-2 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Main Menu</div>
             {studentMain.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
+              <NavLink key={item.href} item={item} pathname={pathname} searchTab={searchTab} />
             ))}
             <div className="mb-2 mt-6 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Resources</div>
             {studentResources.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
+              <NavLink key={item.href} item={item} pathname={pathname} searchTab={searchTab} />
             ))}
           </>
         ) : (
           <>
             <div className="mb-2 px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Main Menu</div>
             {counselorNav.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
+              <NavLink key={item.href} item={item} pathname={pathname} searchTab={searchTab} />
             ))}
           </>
         )}

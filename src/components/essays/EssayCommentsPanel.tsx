@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import MaterialIcon from "@/components/shell/MaterialIcon";
 
 export type EssayComment = {
   id: string;
@@ -44,18 +45,21 @@ export default function EssayCommentsPanel({
   const list = showResolved ? resolved : open;
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-gray-200 bg-gray-50">
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-        <h3 className="text-sm font-semibold text-gray-900">{showResolved ? "Resolved" : "Comments"}</h3>
-        <button type="button" onClick={onToggleResolvedPanel} className="text-xs text-blue-600 hover:underline">
-          {showResolved ? "Open comments" : `Resolved (${resolved.length})`}
+    <aside className="essay-rail flex w-72 shrink-0 flex-col border-l xl:w-80">
+      <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
+        <div className="flex items-center gap-2">
+          <MaterialIcon name="comment" className="!text-base text-text-muted" />
+          <h3 className="text-sm font-semibold text-text-primary">{showResolved ? "Resolved" : "Comments"}</h3>
+        </div>
+        <button type="button" onClick={onToggleResolvedPanel} className="text-xs font-medium text-primary hover:underline">
+          {showResolved ? "Open" : `Resolved (${resolved.length})`}
         </button>
       </div>
-      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
         {list.length === 0 ? (
-          <p className="text-xs text-gray-500">
-            {showResolved ? "No resolved comments yet." : "Select text and add a comment to start a thread."}
-          </p>
+          <div className="empty-state !p-4 text-center text-xs">
+            {showResolved ? "No resolved comments yet." : "Select text in your essay, then add a comment."}
+          </div>
         ) : (
           list.map((c) => (
             <div
@@ -65,20 +69,22 @@ export default function EssayCommentsPanel({
               onClick={() => onSelect(c.id)}
               onKeyDown={(e) => e.key === "Enter" && onSelect(c.id)}
               className={[
-                "cursor-pointer rounded-lg border bg-white p-3 text-sm shadow-sm transition",
-                activeId === c.id ? "border-blue-400 ring-1 ring-blue-200" : "border-gray-200 hover:border-gray-300",
+                "cursor-pointer rounded-lg border p-3 text-sm transition",
+                activeId === c.id ? "list-selectable--active" : "border-border-subtle bg-surface-container-lowest hover:border-border-subtle hover:bg-surface",
               ].join(" ")}
             >
-              <div className="mb-2 rounded bg-yellow-100 px-2 py-1 text-xs text-gray-700 line-clamp-2">{c.quotedText}</div>
-              <p className="text-gray-800">{c.content}</p>
-              <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
-                <span>
-                  {c.authorRole} · {new Date(c.createdAt).toLocaleString()}
+              <div className="mb-2 rounded-md border border-border-subtle bg-surface-container-low px-2 py-1.5 text-xs text-text-secondary line-clamp-2">
+                &ldquo;{c.quotedText}&rdquo;
+              </div>
+              <p className="leading-relaxed text-text-primary">{c.content}</p>
+              <div className="mt-2 flex items-center justify-between text-[10px] text-text-muted">
+                <span className="capitalize">
+                  {c.authorRole} · {new Date(c.createdAt).toLocaleDateString()}
                 </span>
                 {showResolved ? (
                   <button
                     type="button"
-                    className="text-blue-600 hover:underline"
+                    className="font-medium text-primary hover:underline"
                     onClick={(e) => {
                       e.stopPropagation();
                       onReopen(c.id);
@@ -89,7 +95,7 @@ export default function EssayCommentsPanel({
                 ) : (
                   <button
                     type="button"
-                    className="text-blue-600 hover:underline"
+                    className="font-medium text-primary hover:underline"
                     onClick={(e) => {
                       e.stopPropagation();
                       onResolve(c.id);
@@ -100,26 +106,26 @@ export default function EssayCommentsPanel({
                 )}
               </div>
               {c.replies?.length ? (
-                <div className="mt-2 space-y-2 border-t border-gray-100 pt-2">
+                <div className="mt-2 space-y-1.5 border-t border-border-subtle pt-2">
                   {c.replies.map((r) => (
-                    <div key={r.id} className="rounded bg-gray-50 px-2 py-1.5 text-xs">
-                      <span className="font-medium text-gray-600">{r.authorRole}: </span>
+                    <div key={r.id} className="rounded-md bg-surface-container-low px-2 py-1.5 text-xs text-text-secondary">
+                      <span className="font-medium capitalize text-text-primary">{r.authorRole}: </span>
                       {r.content}
                     </div>
                   ))}
                 </div>
               ) : null}
               {!showResolved && !c.resolved ? (
-                <div className="mt-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <input
                     value={replyDrafts[c.id] ?? ""}
                     onChange={(e) => setReplyDrafts((s) => ({ ...s, [c.id]: e.target.value }))}
                     placeholder="Reply…"
-                    className="flex-1 rounded border border-gray-200 px-2 py-1 text-xs"
+                    className="input-base !py-1.5 !text-xs"
                   />
                   <button
                     type="button"
-                    className="rounded bg-gray-900 px-2 py-1 text-xs text-white"
+                    className="btn-primary shrink-0 !px-2.5 !py-1.5 !text-xs"
                     onClick={() => {
                       const text = (replyDrafts[c.id] ?? "").trim();
                       if (!text) return;

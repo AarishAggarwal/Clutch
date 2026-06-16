@@ -52,7 +52,6 @@ type Props = {
   onChange: (html: string, plainText: string, wordCount: number, charCount: number) => void;
   onBlur?: () => void;
   onSelectionChange?: (sel: EssayEditorSelection | null) => void;
-  highlightRanges?: Array<{ id: string; start: number; end: number; color: string }>;
   activeCommentId?: string | null;
   readOnly?: boolean;
 };
@@ -76,10 +75,7 @@ function ToolbarButton({
       type="button"
       title={title}
       onClick={onClick}
-      className={[
-        "rounded px-2 py-1 text-xs font-medium transition",
-        active ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100",
-      ].join(" ")}
+      className={["essay-toolbar-btn", active ? "essay-toolbar-btn--active" : ""].join(" ")}
     >
       {children}
     </button>
@@ -136,7 +132,13 @@ export default function EssayRichEditor({
     editor.setEditable(!readOnly);
   }, [editor, readOnly]);
 
-  if (!editor) return <div className="min-h-[60vh] animate-pulse rounded bg-gray-50" />;
+  if (!editor) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border-subtle border-t-primary" />
+      </div>
+    );
+  }
 
   function setLink() {
     const prev = editor!.getAttributes("link").href as string | undefined;
@@ -150,9 +152,9 @@ export default function EssayRichEditor({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-surface-container-low">
       {!readOnly ? (
-        <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-white px-3 py-2">
+        <div className="essay-toolbar flex flex-wrap items-center gap-1 border-b px-4 py-2">
           <ToolbarButton active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
             <strong>B</strong>
           </ToolbarButton>
@@ -165,7 +167,7 @@ export default function EssayRichEditor({
           <ToolbarButton active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight({ color: "#fef08a" }).run()} title="Highlight">
             H
           </ToolbarButton>
-          <span className="mx-1 h-5 w-px bg-gray-200" />
+          <span className="mx-1 h-5 w-px bg-border-subtle" />
           <ToolbarButton active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet list">
             • List
           </ToolbarButton>
@@ -175,9 +177,9 @@ export default function EssayRichEditor({
           <ToolbarButton active={editor.isActive("link")} onClick={setLink} title="Link">
             Link
           </ToolbarButton>
-          <span className="mx-1 h-5 w-px bg-gray-200" />
+          <span className="mx-1 h-5 w-px bg-border-subtle" />
           <select
-            className="rounded border border-gray-200 px-2 py-1 text-xs"
+            className="input-base !w-auto !border-0 !bg-transparent !py-1 !text-xs !shadow-none"
             value={editor.getAttributes("textStyle").fontFamily ?? ""}
             onChange={(e) => {
               const v = e.target.value;
@@ -193,7 +195,7 @@ export default function EssayRichEditor({
             ))}
           </select>
           <select
-            className="rounded border border-gray-200 px-2 py-1 text-xs"
+            className="input-base !w-auto !border-0 !bg-transparent !py-1 !text-xs !shadow-none"
             value={editor.getAttributes("textStyle").fontSize ?? ""}
             onChange={(e) => {
               const v = e.target.value;
@@ -211,11 +213,13 @@ export default function EssayRichEditor({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-white px-8 py-10 sm:px-12">
-        <EditorContent
-          editor={editor}
-          className="prose prose-sm max-w-none min-h-[50vh] focus:outline-none [&_.ProseMirror]:min-h-[50vh] [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:my-3 [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-relaxed"
-        />
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        <div className="essay-doc-paper mx-auto min-h-[calc(100vh-16rem)] max-w-3xl rounded-xl border border-border-subtle px-8 py-10 sm:px-12 sm:py-12">
+          <EditorContent
+            editor={editor}
+            className="prose prose-sm max-w-none focus:outline-none [&_.ProseMirror]:min-h-[50vh] [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:my-3 [&_.ProseMirror]:font-sans [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-[1.75] [&_.ProseMirror]:text-text-primary [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-text-muted"
+          />
+        </div>
       </div>
     </div>
   );
