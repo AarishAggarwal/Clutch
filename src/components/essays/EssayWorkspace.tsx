@@ -73,6 +73,7 @@ export default function EssayWorkspace() {
   const [versionsOpen, setVersionsOpen] = React.useState(false);
   const [versions, setVersions] = React.useState<EssayVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = React.useState(false);
+  const [deletePending, setDeletePending] = React.useState(false);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = React.useRef(false);
 
@@ -157,9 +158,15 @@ export default function EssayWorkspace() {
     return t.split(/\s+/).filter(Boolean).length;
   }
 
-  async function persistEssay(createVersion = true) {
+  async function persistEssay(createVersion = true, options?: { manual?: boolean }) {
     const plain = form.plainText.trim();
-    if (!plain && !form.richContent.trim()) return;
+    const hasContent = Boolean(plain || form.richContent.trim());
+    if (!hasContent) {
+      if (options?.manual) {
+        setSaveError("Add some essay text before saving.");
+      }
+      return false;
+    }
 
     setSaveState("saving");
     setSaveError(null);
@@ -205,9 +212,47 @@ export default function EssayWorkspace() {
       dirtyRef.current = false;
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);
+      return true;
     } catch (e: unknown) {
       setSaveState("error");
       setSaveError(e instanceof Error ? e.message : "Could not save");
+      return false;
+    }
+  }
+
+  async function saveDraft() {
+    await persistEssay(true, { manual: true });
+  }
+
+  async function deleteDraft() {
+    if (!selected) {
+      const hasDraft = form.title.trim() || form.plainText.trim() || form.richContent.trim();
+      if (!hasDraft) return;
+      if (!window.confirm("Discard this unsaved draft?")) return;
+      setForm(emptyForm);
+      setSaveError(null);
+      return;
+    }
+
+    const label = form.title.trim() || "Untitled draft";
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
+
+    setDeletePending(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/essays/${selected.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      const essays = await refreshEssays();
+      const next = essays[0]?.id ?? null;
+      setSelectedId(next);
+      if (!next) {
+        setForm(emptyForm);
+        window.localStorage.removeItem("activeEssayId");
+      }
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "Could not delete essay.");
+    } finally {
+      setDeletePending(false);
     }
   }
 
@@ -493,7 +538,25 @@ export default function EssayWorkspace() {
             {saveState === "saved" ? <span className="badge-accent essay-status-saved">Saved</span> : null}
             {saveState === "error" ? <span className="badge-neutral !text-error">Save failed</span> : null}
             {form.status ? <span className="badge-neutral capitalize">{form.status}</span> : null}
-            <button type="button" onClick={() => void openVersions()} className="btn-secondary !px-2.5 !py-1.5 !text-xs">
+            <button
+              type="button"
+              onClick={() => void saveDraft()}
+              disabled={saveState === "saving"}
+              className="btn-secondary !px-2.5 !py-1.5 !text-xs disabled:opacity-50"
+            >
+              <MaterialIcon name="save" className="mr-1 !text-sm" />
+              Save draft
+            </button>
+            <button
+              type="button"
+              onClick={() => void deleteDraft()}
+              disabled={deletePending || (!selected && !form.title.trim() && !form.plainText.trim())}
+              className="btn-secondary !px-2.5 !py-1.5 !text-xs !text-error hover:!border-red-200 hover:!bg-red-50 disabled:opacity-50"
+            >
+              <MaterialIcon name="delete" className="mr-1 !text-sm" />
+              {selected ? "Delete" : "Discard"}
+            </button>
+            <button type="button" onClick={() => void openVersions()} disabled={!selected} className="btn-secondary !px-2.5 !py-1.5 !text-xs disabled:opacity-50">
               <MaterialIcon name="history" className="mr-1 !text-sm" />
               History
             </button>

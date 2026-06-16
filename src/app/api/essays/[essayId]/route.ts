@@ -5,7 +5,6 @@ import { essayInputSchema } from "@/lib/workspaceSchemas";
 import { authOptions } from "@/lib/auth";
 import { normalizeEssayPayload } from "@/lib/essayPayload";
 import { parseLimitFromPrompt } from "@/lib/essayLimits";
-import { requireCounselorProfile } from "@/lib/counselorAuth";
 
 async function canEditEssay(essayId: string, userId: string, role: string) {
   const essay = await prisma.essay.findUnique({ where: { id: essayId } });
@@ -91,4 +90,17 @@ export async function PUT(req: Request, ctx: { params: { essayId: string } }) {
   }
 
   return NextResponse.json({ essay });
+}
+
+export async function DELETE(_: Request, ctx: { params: { essayId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const essay = await prisma.essay.findUnique({ where: { id: ctx.params.essayId } });
+  if (!essay || essay.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  await prisma.essay.delete({ where: { id: ctx.params.essayId } });
+  return NextResponse.json({ ok: true });
 }
