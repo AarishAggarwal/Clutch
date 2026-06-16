@@ -38,7 +38,7 @@ export type ChatMessageType =
   | "meta"
   | "ideator_assistant";
 
-export type ModelProvider = "openai" | "deepseek";
+export type ModelProvider = "groq" | "gemini";
 
 export type FusedEvaluationMode = "single-model" | "dual-model";
 

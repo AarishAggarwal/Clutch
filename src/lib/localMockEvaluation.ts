@@ -8,13 +8,13 @@ export function runLocalMockEvaluation(params: {
   essayText: string;
 }) {
   const openai: ModelEvaluationJson = generateMockModelEvaluation({
-    provider: "openai",
+    provider: "groq",
     essayType: params.essayType,
     essayText: params.essayText,
   });
 
   const claude: ModelEvaluationJson = generateMockModelEvaluation({
-    provider: "deepseek",
+    provider: "gemini",
     essayType: params.essayType,
     essayText: params.essayText,
   });
@@ -27,12 +27,12 @@ export function runLocalMockEvaluation(params: {
     agreementSummary: fused.agreementSummary,
     disagreementFlags: fused.disagreementFlags,
     openaiResult: {
-      modelName: "openai-mock",
+      modelName: "groq-mock",
       parsedJson: openai,
       rawJson: openai,
     },
     claudeResult: {
-      modelName: "claude-mock",
+      modelName: "gemini-mock",
       parsedJson: claude,
       rawJson: claude,
     },

@@ -40,8 +40,9 @@ export async function getCounselorReply(params: {
   userId: string;
   mode: "general" | "activities";
 }): Promise<{ reply: string; modelName: string }> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey?.trim()) {
+  const groqKey = process.env.GROQ_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!groqKey?.trim() && !geminiKey?.trim()) {
     const starter =
       params.mode === "activities"
         ? "Activity review mode: share role, impact, and time commitment for each item."
@@ -52,7 +53,8 @@ export async function getCounselorReply(params: {
     };
   }
 
-  const modelName = process.env.OPENAI_COUNSELOR_MODEL ?? process.env.OPENAI_EVAL_MODEL ?? "gpt-4o-mini";
+  const groqModelName = process.env.GROQ_COUNSELOR_MODEL ?? "openai/gpt-oss-20b";
+  const geminiModelName = process.env.GEMINI_COUNSELOR_MODEL ?? "gemini-2.0-flash-lite";
 
   const [profile, activities, essays, documents] = await Promise.all([
     prisma.studentProfile.findUnique({ where: { userId: params.userId } }),
@@ -153,19 +155,42 @@ export async function getCounselorReply(params: {
     "- End with 3 concrete action items for this week.",
   ].join("\n");
 
-  const client = new OpenAI({ apiKey });
-  const res = await client.responses.create({
-    model: modelName,
-    input: [
-      { role: "system", content: buildSystemPrompt() },
-      { role: "user", content: userPayload },
-    ],
-    text: { verbosity: "medium" },
-    max_output_tokens: 1800,
-  });
+  if (groqKey?.trim()) {
+    const client = new OpenAI({
+      apiKey: groqKey,
+      baseURL: process.env.GROQ_BASE_URL?.trim() || "https://api.groq.com/openai/v1",
+    });
+    try {
+      const res = await client.responses.create({
+        model: groqModelName,
+        input: [
+          { role: "system", content: buildSystemPrompt() },
+          { role: "user", content: userPayload },
+        ],
+      });
+      const reply = ((res as any).output_text as string | undefined)?.trim();
+      if (reply) return { reply, modelName: groqModelName };
+    } catch {
+      // fall through to Gemini
+    }
+  }
 
-  const reply = ((res as any).output_text as string | undefined)?.trim();
-  if (!reply) throw new Error("OpenAI returned empty counselor reply.");
-  return { reply, modelName };
+  if (geminiKey?.trim()) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModelName)}:generateContent?key=${encodeURIComponent(geminiKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
+        contents: [{ role: "user", parts: [{ text: userPayload }] }],
+        generationConfig: { temperature: 0.35, maxOutputTokens: 1800 },
+      }),
+    });
+    if (!res.ok) throw new Error(`Gemini counselor request failed (${res.status}).`);
+    const json: any = await res.json();
+    const reply = json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
+    if (reply) return { reply, modelName: geminiModelName };
+  }
+
+  throw new Error("No AI provider returned a counselor reply.");
 }
 

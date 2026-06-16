@@ -20,33 +20,30 @@ export async function evaluateEssayWithProviders(params: {
   agreementSummary: string;
   disagreementFlags: unknown;
   openaiResult?: {
-    provider: "openai";
+    provider: "groq";
     modelName: string;
     rawJson: unknown;
     parsedJson: ModelEvaluationJson;
   };
   claudeResult?: {
-    provider: "deepseek";
+    provider: "gemini";
     modelName: string;
     rawJson: unknown;
     parsedJson: ModelEvaluationJson;
   };
 }> {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  const claudeKey = process.env.ANTHROPIC_API_KEY || process.env.DEEPSEEK_API_KEY;
+  const openaiKey = process.env.GROQ_API_KEY;
+  const claudeKey = process.env.GEMINI_API_KEY;
 
   const haveOpenAI = Boolean(openaiKey && openaiKey.trim().length > 0);
   const haveClaude = Boolean(claudeKey && claudeKey.trim().length > 0);
 
-  // Mock/test mode: if neither key exists, we still run both deterministic mocks.
-  const neitherExists = !haveOpenAI && !haveClaude;
-
-  const runOpenAI = haveOpenAI || neitherExists;
-  const runClaude = haveClaude || neitherExists;
+  const runOpenAI = haveOpenAI;
+  const runClaude = haveClaude;
 
   let openaiResult:
     | {
-        provider: "openai";
+        provider: "groq";
         modelName: string;
         rawJson: unknown;
         parsedJson: ModelEvaluationJson;
@@ -54,7 +51,7 @@ export async function evaluateEssayWithProviders(params: {
     | undefined;
   let claudeResult:
     | {
-        provider: "deepseek";
+        provider: "gemini";
         modelName: string;
         rawJson: unknown;
         parsedJson: ModelEvaluationJson;
@@ -99,7 +96,7 @@ export async function evaluateEssayWithProviders(params: {
 
   if (!openaiResult && !claudeResult) {
     throw new Error(
-      `No provider could produce a valid evaluation result. OpenAI error: ${openaiError ?? "unknown"}. DeepSeek error: ${claudeError ?? "unknown"}.`,
+      `No provider could produce a valid evaluation result. Groq error: ${openaiError ?? "unknown"}. Gemini error: ${claudeError ?? "unknown"}.`,
     );
   }
 

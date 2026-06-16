@@ -228,7 +228,7 @@ export async function saveEssayEvaluation(params: {
     const openaiEval = await prisma.modelEvaluation.create({
       data: {
         essaySubmissionId: essaySubmission.id,
-        provider: "openai",
+        provider: "groq",
         modelName: params.openaiResult.modelName,
         rawJson: JSON.stringify(params.openaiResult.rawJson),
         parsedJson: JSON.stringify(params.openaiResult.parsedJson),
@@ -238,7 +238,7 @@ export async function saveEssayEvaluation(params: {
 
     assistantModelMessages.push(
       JSON.stringify({
-        provider: "openai",
+        provider: "groq",
         modelName: openaiEval.modelName,
         validSchema: openaiEval.validSchema,
         parsedJson: openaiEval.parsedJson,
@@ -251,7 +251,7 @@ export async function saveEssayEvaluation(params: {
     const claudeEval = await prisma.modelEvaluation.create({
       data: {
         essaySubmissionId: essaySubmission.id,
-        provider: "deepseek",
+        provider: "gemini",
         modelName: params.claudeResult.modelName,
         rawJson: JSON.stringify(params.claudeResult.rawJson),
         parsedJson: JSON.stringify(params.claudeResult.parsedJson),
@@ -261,7 +261,7 @@ export async function saveEssayEvaluation(params: {
 
     assistantModelMessages.push(
       JSON.stringify({
-        provider: "deepseek",
+        provider: "gemini",
         modelName: claudeEval.modelName,
         validSchema: claudeEval.validSchema,
         parsedJson: claudeEval.parsedJson,

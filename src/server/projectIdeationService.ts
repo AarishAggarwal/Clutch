@@ -28,39 +28,63 @@ function mockIdeationReply(history: IdeationTurn[]): string {
 }
 
 export async function generateProjectIdeationReply(history: IdeationTurn[]): Promise<{ text: string; modelName: string }> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const modelName = process.env.OPENAI_PROJECT_MODEL ?? process.env.OPENAI_EVAL_MODEL ?? "gpt-4o-mini";
+  const groqKey = process.env.GROQ_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const groqModel = process.env.GROQ_PROJECT_MODEL ?? "openai/gpt-oss-20b";
+  const geminiModel = process.env.GEMINI_PROJECT_MODEL ?? "gemini-2.0-flash-lite";
 
-  if (!apiKey?.trim()) {
+  if (!groqKey?.trim() && !geminiKey?.trim()) {
     return { text: mockIdeationReply(history), modelName: "mock-local" };
   }
 
-  const client = new OpenAI({ apiKey });
   const input = [
     { role: "system" as const, content: SYSTEM_PROMPT },
     ...history.map((h) => ({ role: h.role, content: h.content })),
   ];
 
-  try {
-    const res = await client.responses.create({
-      model: modelName,
-      input,
-      max_output_tokens: 1800,
-      text: { verbosity: "medium" },
+  if (groqKey?.trim()) {
+    const client = new OpenAI({
+      apiKey: groqKey,
+      baseURL: process.env.GROQ_BASE_URL?.trim() || "https://api.groq.com/openai/v1",
     });
-    const text = extractResponsesOutputText(res);
-    if (text) return { text, modelName };
-  } catch {
-    // fall through to Chat Completions
+    try {
+      const res = await client.responses.create({
+        model: groqModel,
+        input,
+        max_output_tokens: 1800,
+      });
+      const text = extractResponsesOutputText(res);
+      if (text) return { text, modelName: groqModel };
+    } catch {
+      // fall through
+    }
+
+    const chatRes = await chatCompletionCreateFlexible(client, {
+      model: groqModel,
+      messages: input.map((m) => ({ role: m.role, content: m.content })),
+      max_completion_tokens: 1800,
+    });
+    const text = chatCompletionMessageText(chatRes.choices[0]?.message);
+    if (text) return { text, modelName: groqModel };
   }
 
-  const chatRes = await chatCompletionCreateFlexible(client, {
-    model: modelName,
-    messages: input.map((m) => ({ role: m.role, content: m.content })),
-    max_completion_tokens: 1800,
-  });
-  const text = chatCompletionMessageText(chatRes.choices[0]?.message);
-  if (text) return { text, modelName };
+  if (geminiKey?.trim()) {
+    const flattened = input.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: flattened }] }],
+        generationConfig: { temperature: 0.6, maxOutputTokens: 1800 },
+      }),
+    });
+    if (res.ok) {
+      const json: any = await res.json();
+      const text = json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
+      if (text) return { text, modelName: geminiModel };
+    }
+  }
 
-  return { text: "I couldn’t generate a reply—try sending a shorter message.", modelName };
+  return { text: "I couldn’t generate a reply—try sending a shorter message.", modelName: "fallback-local" };
 }

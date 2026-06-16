@@ -39,8 +39,6 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string) {
   ]);
 }
 
-// NOTE: This file now talks to DeepSeek, not Claude.
-// It uses the Anthropic env slot so you can just paste your DeepSeek key there.
 export async function evaluateEssayWithClaude(params: {
   essayType: EssayType;
   essayText: string;
@@ -51,16 +49,14 @@ export async function evaluateEssayWithClaude(params: {
   };
   activitiesContext?: string;
 }): Promise<{
-  provider: "deepseek";
+  provider: "gemini";
   modelName: string;
   rawJson: unknown;
   parsedJson: ModelEvaluationJson;
 }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) throw new Error("Missing DeepSeek API key (ANTHROPIC_API_KEY / DEEPSEEK_API_KEY).");
-
-  const baseURL = process.env.ANTHROPIC_BASE_URL || "https://api.deepseek.com/v1";
-  const modelName = process.env.ANTHROPIC_EVAL_MODEL || "deepseek-chat";
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
+  const modelName = process.env.GEMINI_ESSAY_MODEL || "gemini-2.0-flash-lite";
 
   const referenceCorpus = getAcceptedEssaysReferenceText();
   const { system, user } = buildEssayEvaluationPrompts({
@@ -71,46 +67,44 @@ export async function evaluateEssayWithClaude(params: {
     referenceCorpus,
   });
 
-  const body = {
-    model: modelName,
-    temperature: 0,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 2800,
-  };
-
   const res = await withTimeout(
-    fetch(`${baseURL}/chat/completions`, {
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: `${system}\n\nReturn one valid JSON object only.` }],
+        },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 2800,
+          responseMimeType: "application/json",
+        },
+      }),
     }),
     30000,
-    "DeepSeek evaluation",
+    "Gemini evaluation",
   );
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`DeepSeek HTTP ${res.status}: ${text}`);
+    throw new Error(`Gemini HTTP ${res.status}: ${text}`);
   }
 
   const json: any = await res.json();
-  const content = json.choices?.[0]?.message?.content;
+  const content = json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
   if (!content || typeof content !== "string") {
-    throw new Error("DeepSeek returned empty or non-string content.");
+    throw new Error("Gemini returned empty or non-string content.");
   }
 
   const parsed = parseModelJson(content);
   const parsedJson = modelEvaluationJsonSchema.parse(parsed);
 
   return {
-    provider: "deepseek",
+    provider: "gemini",
     modelName,
     rawJson: content,
     parsedJson,

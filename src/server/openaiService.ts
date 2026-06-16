@@ -50,17 +50,20 @@ export async function evaluateEssayWithOpenAI(params: {
   };
   activitiesContext?: string;
 }): Promise<{
-  provider: "openai";
+  provider: "groq";
   modelName: string;
   rawJson: unknown;
   parsedJson: ModelEvaluationJson;
 }> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("Missing GROQ_API_KEY");
 
-  const modelName = process.env.OPENAI_EVAL_MODEL ?? "gpt-4o-mini";
+  const modelName = process.env.GROQ_ESSAY_MODEL ?? "openai/gpt-oss-20b";
 
-  const client = new OpenAI({ apiKey });
+  const client = new OpenAI({
+    apiKey,
+    baseURL: process.env.GROQ_BASE_URL?.trim() || "https://api.groq.com/openai/v1",
+  });
   const referenceCorpus = getAcceptedEssaysReferenceText();
   const { system, user } = buildEssayEvaluationPrompts({
     essayType: params.essayType,
@@ -71,22 +74,21 @@ export async function evaluateEssayWithOpenAI(params: {
   });
 
   const response = await withTimeout(
-    client.responses.create({
+    client.chat.completions.create({
       model: modelName,
-      input: [
+      messages: [
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      max_output_tokens: 2800,
-      text: {
-        verbosity: "medium",
-      },
+      response_format: { type: "json_object" },
+      max_tokens: 2800,
+      temperature: 0,
     }),
     30000,
-    "OpenAI evaluation",
+    "Groq evaluation",
   );
 
-  const content = (response as any).output_text as string | undefined;
+  const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("OpenAI returned empty content.");
 
   const parsed = parseModelJson(content);
@@ -94,7 +96,7 @@ export async function evaluateEssayWithOpenAI(params: {
   const parsedJson = modelEvaluationJsonSchema.parse(parsed);
 
   return {
-    provider: "openai",
+    provider: "groq",
     modelName,
     rawJson: content,
     parsedJson,

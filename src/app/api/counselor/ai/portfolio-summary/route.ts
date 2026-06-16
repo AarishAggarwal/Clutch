@@ -83,7 +83,7 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error("[portfolio-summary]", e);
     return NextResponse.json(
-      { error: "Could not generate AI summary. Check OPENAI_API_KEY and try again." },
+      { error: "Could not generate AI summary. Check GEMINI_API_KEY and try again." },
       { status: 502 },
     );
   }

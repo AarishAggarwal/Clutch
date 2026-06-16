@@ -1,5 +1,3 @@
-import OpenAI from "openai";
-
 export type PortfolioSummaryJson = {
   executive_summary: string;
   academic_standing: string;
@@ -28,7 +26,7 @@ export async function generatePortfolioSummary(studentData: {
   activities: Array<{ title: string; category: string; role: string; description: string }>;
   readiness: { overall: number };
 }): Promise<PortfolioSummaryJson> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     const profile = studentData.profile as { gpa?: number | null; sat?: number | null; act?: number | null };
     const missing: string[] = [];
@@ -49,7 +47,6 @@ export async function generatePortfolioSummary(studentData: {
     };
   }
 
-  const client = new OpenAI({ apiKey });
   const system = `You are a senior college admissions counsellor reviewing a student's portfolio.
 Analyse the student's profile and return ONLY valid JSON (no markdown) with these fields:
 executive_summary, academic_standing, ec_narrative, essay_readiness, college_list_balance,
@@ -61,16 +58,23 @@ If data is missing, explicitly call it out and treat it as "not completed yet".`
 
   const user = JSON.stringify(studentData, null, 2);
 
-  const completion = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL?.trim() || "gpt-4o",
-    temperature: 0.4,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
+  const model = process.env.GEMINI_SUMMARY_MODEL?.trim() || "gemini-2.0-flash-lite";
+  const completion = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: "user", parts: [{ text: user }] }],
+      generationConfig: {
+        temperature: 0.35,
+        maxOutputTokens: 2200,
+        responseMimeType: "application/json",
+      },
+    }),
   });
-
-  const text = completion.choices[0]?.message?.content;
+  if (!completion.ok) throw new Error(`Gemini summary request failed (${completion.status})`);
+  const data: any = await completion.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
   if (!text) throw new Error("Empty AI response.");
   const parsed = JSON.parse(extractJsonObject(text)) as PortfolioSummaryJson;
   return parsed;

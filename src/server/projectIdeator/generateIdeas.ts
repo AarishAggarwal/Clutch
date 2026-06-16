@@ -92,8 +92,31 @@ async function fetchIdeatorRawText(client: OpenAI, modelName: string, userPayloa
 
   if (lastErr instanceof Error) throw lastErr;
   throw new Error(
-    "Empty response from model. Check OPENAI_API_KEY, OPENAI_PROJECT_IDEATOR_MODEL, and account limits.",
+    "Empty response from model. Check GROQ_API_KEY/GEMINI_API_KEY, chosen model vars, and account limits.",
   );
+}
+
+async function fetchIdeatorRawTextGemini(modelName: string, userPayload: string, apiKey: string): Promise<string> {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: `${PROJECT_IDEATOR_SYSTEM_PROMPT}\n\nReturn exactly one valid JSON object. No markdown.` }],
+      },
+      contents: [{ role: "user", parts: [{ text: userPayload }] }],
+      generationConfig: {
+        temperature: 0.45,
+        maxOutputTokens: 12000,
+        responseMimeType: "application/json",
+      },
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini ideator HTTP ${res.status}`);
+  const json: any = await res.json();
+  const text = json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("").trim();
+  if (!text) throw new Error("Gemini ideator returned empty text.");
+  return text;
 }
 
 export async function generateProjectIdeas(params: {
@@ -104,21 +127,37 @@ export async function generateProjectIdeas(params: {
   messages: ComposerMessage[];
   userMessage: string;
 }): Promise<{ response: IdeatorResponse; modelName: string; rawText: string }> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const modelName = process.env.OPENAI_PROJECT_IDEATOR_MODEL ?? process.env.OPENAI_EVAL_MODEL ?? "gpt-4o";
+  const groqKey = process.env.GROQ_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const groqModel = process.env.GROQ_PROJECT_IDEATOR_MODEL ?? "openai/gpt-oss-20b";
+  const geminiModel = process.env.GEMINI_PROJECT_IDEATOR_MODEL ?? "gemini-2.0-flash";
 
   const userPayload = buildIdeatorUserPayload({
     ...params,
     ideaCount: Math.min(7, Math.max(1, params.ideaCount)),
   });
 
-  if (!apiKey?.trim()) {
-    throw new Error("OPENAI_API_KEY is not set. Add it to .env.local to use the Project Ideator.");
+  if (!groqKey?.trim() && !geminiKey?.trim()) {
+    throw new Error("Missing model keys. Set GROQ_API_KEY and/or GEMINI_API_KEY.");
   }
-
-  const client = new OpenAI({ apiKey });
-
-  const rawText = await fetchIdeatorRawText(client, modelName, userPayload);
+  let rawText = "";
+  let modelName = groqModel;
+  if (groqKey?.trim()) {
+    const client = new OpenAI({
+      apiKey: groqKey,
+      baseURL: process.env.GROQ_BASE_URL?.trim() || "https://api.groq.com/openai/v1",
+    });
+    try {
+      rawText = await fetchIdeatorRawText(client, groqModel, userPayload);
+      modelName = groqModel;
+    } catch {
+      rawText = "";
+    }
+  }
+  if (!rawText && geminiKey?.trim()) {
+    rawText = await fetchIdeatorRawTextGemini(geminiModel, userPayload, geminiKey);
+    modelName = geminiModel;
+  }
   if (!rawText) {
     throw new Error("Empty response from model.");
   }
