@@ -381,23 +381,28 @@ export default function EssayWorkspace() {
   const promptList = supplementalCatalog?.prompts ?? [];
   const selectedPrompt = promptList.find((p) => p.id === selectedPromptId);
 
+  function buildSupplementTemplate(promptOverride?: string) {
+    const promptText = promptOverride ?? (selectedPrompt ? selectedPrompt.question : customPromptText.trim());
+    const parsed = promptText ? parseLimitFromPrompt(promptText) : null;
+    return {
+      ...emptyForm,
+      essayType: "supplemental_essay",
+      title: selectedUniversity ? `${selectedUniversity.name} supplement` : "",
+      promptText: promptText || "",
+      universitySlug: selectedUniversity?.slug ?? "",
+      universityName: selectedUniversity?.name ?? "",
+      promptId: selectedPrompt?.id ?? "",
+      limitType: parsed?.limitType ?? null,
+      limitValue: parsed?.limitValue ?? null,
+    };
+  }
+
   function createSupplementDraft() {
     if (!selectedUniversity) return;
     const promptText = selectedPrompt ? selectedPrompt.question : customPromptText.trim();
     if (!promptText) return;
-    const parsed = parseLimitFromPrompt(promptText);
     setSelectedId(null);
-    setForm({
-      ...emptyForm,
-      essayType: "supplemental_essay",
-      title: `${selectedUniversity.name} supplement`,
-      promptText,
-      universitySlug: selectedUniversity.slug,
-      universityName: selectedUniversity.name,
-      promptId: selectedPrompt?.id ?? "",
-      limitType: parsed?.limitType ?? null,
-      limitValue: parsed?.limitValue ?? null,
-    });
+    setForm(buildSupplementTemplate(promptText));
   }
 
   const { commonRows, supplementRows } = React.useMemo(() => {
@@ -408,6 +413,14 @@ export default function EssayWorkspace() {
 
   const promptText = form.promptText ?? "";
   const promptNeedsExpand = promptText.length > 100 || promptText.includes("\n");
+
+  React.useEffect(() => {
+    if (tab !== "university") return;
+    if (selectedId && supplementRows.some((row) => row.id === selectedId)) return;
+    setSelectedId(null);
+    setForm(buildSupplementTemplate());
+    setPromptExpanded(false);
+  }, [tab, selectedId, supplementRows, selectedUniversitySlug, selectedPromptId, customPromptText]);
 
   return (
     <div className="essay-shell flex h-full overflow-hidden">
@@ -454,7 +467,12 @@ export default function EssayWorkspace() {
             </button>
             <button
               type="button"
-              onClick={() => setTab("university")}
+              onClick={() => {
+                setTab("university");
+                setSelectedId(null);
+                setForm(buildSupplementTemplate());
+                setPromptExpanded(false);
+              }}
               className={["nav-pill-link flex-1 text-center !text-xs", tab === "university" ? "nav-pill-link--active" : ""].join(" ")}
             >
               Supplements
@@ -477,11 +495,29 @@ export default function EssayWorkspace() {
               <PromptSelect
                 prompts={promptList}
                 value={selectedPromptId}
-                onChange={setSelectedPromptId}
+                onChange={(promptId) => {
+                  setSelectedPromptId(promptId);
+                  const picked = promptList.find((p) => p.id === promptId);
+                  if (tab === "university" && !selectedId) {
+                    setForm(buildSupplementTemplate(picked?.question ?? ""));
+                    setPromptExpanded(false);
+                  }
+                }}
                 disabled={!selectedUniversity}
               />
               {!promptList.length ? (
-                <textarea value={customPromptText} onChange={(e) => setCustomPromptText(e.target.value)} placeholder="Paste the official prompt" className="input-base h-16 resize-none !text-xs" />
+                <textarea
+                  value={customPromptText}
+                  onChange={(e) => {
+                    setCustomPromptText(e.target.value);
+                    if (tab === "university" && !selectedId) {
+                      setForm(buildSupplementTemplate(e.target.value));
+                      setPromptExpanded(false);
+                    }
+                  }}
+                  placeholder="Paste the official prompt"
+                  className="input-base h-16 resize-none !text-xs"
+                />
               ) : null}
               <button type="button" onClick={createSupplementDraft} className="btn-primary w-full !py-2 !text-xs">
                 New supplement

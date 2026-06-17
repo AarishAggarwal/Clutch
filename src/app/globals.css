@@ -600,6 +600,219 @@ body {
   background: var(--uni-border);
 }
 
+/* Common App PDF-style application preview */
+.ca-preview-shell {
+  background: #e8eaed;
+  min-height: 100%;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+.dark .ca-preview-shell {
+  background: #0a0d12;
+}
+
+.ca-preview-toolbar {
+  @apply mx-auto mb-4 flex max-w-[52rem] flex-wrap items-center justify-between gap-3 px-2;
+}
+
+.ca-preview-doc {
+  --ca-ink: #111111;
+  --ca-muted: #4a4a4a;
+  --ca-line: #d8d8d8;
+  --ca-paper: #ffffff;
+  max-width: 52rem;
+  margin: 0 auto;
+  background: var(--ca-paper);
+  color: var(--ca-ink);
+  border: 1px solid #d0d0d0;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.08);
+  padding: 2.25rem 2.5rem 2rem;
+  font-family: var(--font-dm-sans), "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.ca-preview-header {
+  border-bottom: 1px solid var(--ca-line);
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ca-preview-applicant {
+  font-family: var(--font-dm-sans), Arial, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ca-ink);
+}
+
+.ca-preview-meta {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ca-muted);
+}
+
+.ca-preview-section + .ca-preview-section {
+  margin-top: 1.75rem;
+  padding-top: 0.25rem;
+}
+
+.ca-preview-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ca-ink);
+  margin-bottom: 0.85rem;
+}
+
+.ca-preview-subsection + .ca-preview-subsection {
+  margin-top: 1rem;
+}
+
+.ca-preview-subsection-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ca-ink);
+  margin-bottom: 0.45rem;
+}
+
+.ca-preview-fields {
+  display: grid;
+  gap: 0.35rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .ca-preview-fields {
+    grid-template-columns: 11rem minmax(0, 1fr);
+  }
+}
+
+.ca-preview-field {
+  display: contents;
+}
+
+.ca-preview-field-label {
+  font-weight: 600;
+  color: var(--ca-ink);
+}
+
+.ca-preview-field-value {
+  color: var(--ca-ink);
+  white-space: pre-wrap;
+}
+
+.ca-preview-empty,
+.ca-preview-empty-inline {
+  color: var(--ca-muted);
+  font-style: italic;
+}
+
+.ca-preview-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.ca-preview-activity {
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--ca-line);
+}
+
+.ca-preview-activity:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ca-preview-activity-category {
+  font-weight: 700;
+  color: var(--ca-ink);
+}
+
+.ca-preview-activity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--ca-muted);
+}
+
+.ca-preview-activity-headline {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  color: var(--ca-ink);
+}
+
+.ca-preview-activity-description {
+  margin-top: 0.35rem;
+  white-space: pre-wrap;
+  color: var(--ca-ink);
+  line-height: 1.55;
+}
+
+.ca-preview-writing {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.ca-preview-essay-block + .ca-preview-essay-block {
+  padding-top: 0.25rem;
+}
+
+.ca-preview-essay-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ca-ink);
+  margin-bottom: 0.5rem;
+}
+
+.ca-preview-prompt {
+  margin-bottom: 0.65rem;
+  white-space: pre-wrap;
+  color: var(--ca-muted);
+  line-height: 1.5;
+  font-size: 0.78rem;
+}
+
+.ca-preview-essay-body {
+  white-space: pre-wrap;
+  color: var(--ca-ink);
+  line-height: 1.6;
+  font-size: 0.8125rem;
+}
+
+.ca-preview-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ca-line);
+  font-size: 0.6875rem;
+  color: var(--ca-muted);
+}
+
+@media print {
+  .ca-preview-shell {
+    background: white;
+    padding: 0;
+  }
+
+  .ca-preview-no-print {
+    display: none !important;
+  }
+
+  .ca-preview-doc {
+    box-shadow: none;
+    border: none;
+    max-width: none;
+    padding: 0;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
