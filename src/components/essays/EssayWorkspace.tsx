@@ -4,10 +4,12 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import type { UniversityRecord } from "@/lib/universityTypes";
 import { getSupplementalCatalogEntryForSlug } from "@/lib/supplementalPrompts";
+import { partitionEssays } from "@/lib/essayCategories";
 import { limitStatus, parseLimitFromPrompt } from "@/lib/essayLimits";
 import EssayRichEditor, { type EssayEditorSelection } from "@/components/essays/EssayRichEditor";
 import EssayCommentsPanel, { type EssayComment } from "@/components/essays/EssayCommentsPanel";
 import VersionHistoryPanel, { type EssayVersion } from "@/components/essays/VersionHistoryPanel";
+import PromptSelect from "@/components/essays/PromptSelect";
 import MaterialIcon from "@/components/shell/MaterialIcon";
 
 type Essay = {
@@ -398,8 +400,10 @@ export default function EssayWorkspace() {
     });
   }
 
-  const commonRows = rows.filter((r) => r.essayType.includes("common") || !r.universitySlug);
-  const supplementRows = rows.filter((r) => r.universitySlug || r.essayType.includes("supplement"));
+  const { commonRows, supplementRows } = React.useMemo(() => {
+    const { commonEssays, supplementEssays } = partitionEssays(rows);
+    return { commonRows: commonEssays, supplementRows: supplementEssays };
+  }, [rows]);
   const listRows = tab === "common" ? commonRows : supplementRows;
 
   const promptText = form.promptText ?? "";
@@ -458,7 +462,7 @@ export default function EssayWorkspace() {
           </div>
 
           {tab === "university" ? (
-            <div className="space-y-2 border-b border-border-subtle px-3 py-3">
+            <div className="relative space-y-2 overflow-visible border-b border-border-subtle px-3 py-3">
               <select value={selectedUniversitySlug} onChange={(e) => setSelectedUniversitySlug(e.target.value)} className="input-base !text-xs">
                 <option value="">Select university</option>
                 {savedUniversitySlugs.map((slug) => {
@@ -470,14 +474,12 @@ export default function EssayWorkspace() {
                   ) : null;
                 })}
               </select>
-              <select value={selectedPromptId} onChange={(e) => setSelectedPromptId(e.target.value)} className="input-base !text-xs" disabled={!selectedUniversity}>
-                <option value="">Select prompt</option>
-                {promptList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.question.slice(0, 55)}…
-                  </option>
-                ))}
-              </select>
+              <PromptSelect
+                prompts={promptList}
+                value={selectedPromptId}
+                onChange={setSelectedPromptId}
+                disabled={!selectedUniversity}
+              />
               {!promptList.length ? (
                 <textarea value={customPromptText} onChange={(e) => setCustomPromptText(e.target.value)} placeholder="Paste the official prompt" className="input-base h-16 resize-none !text-xs" />
               ) : null}

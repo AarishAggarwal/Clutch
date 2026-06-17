@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import MaterialIcon from "@/components/shell/MaterialIcon";
+import { isSupplementEssay, partitionEssays } from "@/lib/essayCategories";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string; createdAt?: string };
 
@@ -77,12 +78,11 @@ export default function AssistantHub() {
   const messages = tab === "essay_assistant" ? essayMessages : counselorMessages;
   const setMessages = tab === "essay_assistant" ? setEssayMessages : setCounselorMessages;
 
-  const { commonEssays, supplementEssays } = React.useMemo(() => ({
-    commonEssays: essays.filter((e) => e.essayType.includes("common") || !e.universitySlug),
-    supplementEssays: essays.filter((e) => e.universitySlug || e.essayType.includes("supplement")),
-  }), [essays]);
+  const { commonEssays, supplementEssays } = React.useMemo(() => partitionEssays(essays), [essays]);
   const filteredEssays = essayCategory === "common" ? commonEssays : supplementEssays;
-  const selectedEssay = essays.find((e) => e.id === essayId) ?? null;
+  const selectedEssay = filteredEssays.find((e) => e.id === essayId) ?? null;
+  const draftSelectValue =
+    essayId && filteredEssays.some((e) => e.id === essayId) ? essayId : filteredEssays[0]?.id ?? "";
 
   React.useEffect(() => {
     void (async () => {
@@ -99,7 +99,7 @@ export default function AssistantHub() {
       setEssayId(stored);
       const essay = essays.find((e) => e.id === stored);
       if (essay) {
-        setEssayCategory(essay.universitySlug || essay.essayType.includes("supplement") ? "supplement" : "common");
+        setEssayCategory(isSupplementEssay(essay) ? "supplement" : "common");
       }
     }
   }, [essays]);
@@ -110,7 +110,7 @@ export default function AssistantHub() {
       setEssayId(eid);
       const essay = essays.find((e) => e.id === eid);
       if (essay) {
-        setEssayCategory(essay.universitySlug || essay.essayType.includes("supplement") ? "supplement" : "common");
+        setEssayCategory(isSupplementEssay(essay) ? "supplement" : "common");
       }
     }
   }, [searchParams, essays]);
@@ -128,10 +128,12 @@ export default function AssistantHub() {
 
   React.useEffect(() => {
     if (tab !== "essay_assistant") return;
-    if (essayId && filteredEssays.some((e) => e.id === essayId)) return;
-    if (filteredEssays[0]) setEssayId(filteredEssays[0].id);
-    else setEssayId("");
-  }, [essayCategory, tab, filteredEssays, essayId]);
+    if (!draftSelectValue) {
+      if (essayId) setEssayId("");
+      return;
+    }
+    if (draftSelectValue !== essayId) setEssayId(draftSelectValue);
+  }, [tab, draftSelectValue, essayId]);
 
   React.useEffect(() => {
     void (async () => {
@@ -169,7 +171,11 @@ export default function AssistantHub() {
     setError(null);
     try {
       const endpoint = tab === "essay_assistant" ? "/api/essay-assistant/chat" : "/api/counselor/chat";
-      const body = tab === "essay_assistant" ? { message: text, essayId: essayId || undefined } : { message: text };
+      const activeDraftId =
+        tab === "essay_assistant"
+          ? draftSelectValue || undefined
+          : undefined;
+      const body = tab === "essay_assistant" ? { message: text, essayId: activeDraftId } : { message: text };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -305,7 +311,12 @@ export default function AssistantHub() {
                 <select
                   className="input-base !text-xs"
                   value={essayCategory}
-                  onChange={(e) => setEssayCategory(e.target.value as EssayCategory)}
+                  onChange={(e) => {
+                    const cat = e.target.value as EssayCategory;
+                    setEssayCategory(cat);
+                    const list = cat === "common" ? commonEssays : supplementEssays;
+                    setEssayId(list[0]?.id ?? "");
+                  }}
                 >
                   <option value="common">Common App</option>
                   <option value="supplement">Supplements</option>
@@ -315,7 +326,7 @@ export default function AssistantHub() {
                 <label className="field-label">Draft to review</label>
                 <select
                   className="input-base !text-xs"
-                  value={essayId}
+                  value={draftSelectValue}
                   onChange={(e) => setEssayId(e.target.value)}
                   disabled={!filteredEssays.length}
                 >
