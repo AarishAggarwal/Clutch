@@ -40,6 +40,9 @@ College_Scorecard_Raw_Data_03232026/
 # vercel
 .vercel
 
+# marketplace application PDFs (sensitive — upload locally / on server)
+private/marketplace/*.pdf
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
