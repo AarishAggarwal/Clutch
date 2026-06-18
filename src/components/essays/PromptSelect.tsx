@@ -45,7 +45,7 @@ export default function PromptSelect({ prompts, value, onChange, disabled }: Pro
         disabled={disabled || !prompts.length}
         onClick={() => setOpen((v) => !v)}
         className={[
-          "input-base flex w-full items-center justify-between gap-2 !py-2 !text-left !text-xs",
+          "input-base flex w-full items-center justify-between gap-2 !py-2.5 !text-left !text-sm",
           disabled || !prompts.length ? "cursor-not-allowed opacity-60" : "",
         ].join(" ")}
         aria-haspopup="listbox"
@@ -87,7 +87,7 @@ export default function PromptSelect({ prompts, value, onChange, disabled }: Pro
                     {p.kind ? ` · ${p.kind.replace(/_/g, " ")}` : ""}
                   </span>
                 ) : null}
-                <span className="whitespace-pre-wrap">{p.question}</span>
+                <span className="whitespace-pre-wrap text-sm">{p.question}</span>
               </button>
             );
           })}

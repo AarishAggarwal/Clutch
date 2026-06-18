@@ -19,7 +19,7 @@ export const MARKETPLACE_APPLICATIONS: MarketplaceApplication[] = [
     studentName: "Aarish Aggarwal",
     admissionYear: 2026,
     program: "Computer Science · Regular Decision",
-    priceInr: 600,
+    priceInr: 100,
     pdfPath: "private/marketplace/nyu-tandon-aarish-aggarwal.pdf",
     previewLines: [
       "Education — Jayshree Periwal International School (IB Diploma), graduation 05/2026.",

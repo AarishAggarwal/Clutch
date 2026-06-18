@@ -40,7 +40,7 @@ export default function ApplicationsMarketplace() {
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Admitted applications</p>
         <p className="mt-1 text-sm text-text-secondary">
-          Buy and view past admitted students&apos; applications. Preview a few lines free — unlock the full PDF for ₹600.
+          Buy and view past admitted students&apos; applications. Preview a few lines free — unlock the full PDF for ₹100.
         </p>
       </div>
 

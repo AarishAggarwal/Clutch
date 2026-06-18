@@ -58,7 +58,7 @@ export default function EssayCommentsPanel({
       <div className="flex-1 space-y-2 overflow-y-auto p-3">
         {list.length === 0 ? (
           <div className="empty-state !p-4 text-center text-xs">
-            {showResolved ? "No resolved comments yet." : "Select text in your essay, then add a comment."}
+            {showResolved ? "No resolved comments yet." : "Highlight wording in your essay, then add a comment on the selected text."}
           </div>
         ) : (
           list.map((c) => (

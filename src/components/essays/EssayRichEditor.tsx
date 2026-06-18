@@ -109,6 +109,11 @@ export default function EssayRichEditor({
       onChange(html, plain, countWords(plain), countCharacters(plain));
     },
     onBlur: () => onBlur?.(),
+    editorProps: {
+      attributes: {
+        class: "outline-none min-h-[50vh]",
+      },
+    },
     onSelectionUpdate: ({ editor: ed }) => {
       const { from, to } = ed.state.selection;
       if (from === to) {
@@ -121,9 +126,10 @@ export default function EssayRichEditor({
 
   React.useEffect(() => {
     if (!editor) return;
+    const next = content?.trim() ? content : "<p></p>";
     const current = editor.getHTML();
-    if (content && content !== current && content !== "<p></p>") {
-      editor.commands.setContent(content, { emitUpdate: false });
+    if (next !== current) {
+      editor.commands.setContent(next, { emitUpdate: false });
     }
   }, [content, editor]);
 

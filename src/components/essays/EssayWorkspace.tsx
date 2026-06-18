@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { UniversityRecord } from "@/lib/universityTypes";
 import { getSupplementalCatalogEntryForSlug } from "@/lib/supplementalPrompts";
@@ -52,6 +53,15 @@ const emptyForm = {
   limitValue: null as number | null,
 };
 
+const ESSAY_GUIDANCE_TIPS = [
+  "Open with a specific scene or moment — not a broad theme.",
+  "Show what changed in you; admissions readers look for reflection.",
+  "Use concrete details (place, dialogue, sensory cues) instead of abstract claims.",
+  "End with forward momentum — where this experience points you next.",
+];
+
+type FormState = typeof emptyForm;
+
 export default function EssayWorkspace() {
   const searchParams = useSearchParams();
   const [rows, setRows] = React.useState<Essay[]>([]);
@@ -76,6 +86,7 @@ export default function EssayWorkspace() {
   const [versions, setVersions] = React.useState<EssayVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = React.useState(false);
   const [deletePending, setDeletePending] = React.useState(false);
+  const [editorKey, setEditorKey] = React.useState(0);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = React.useRef(false);
 
@@ -161,14 +172,28 @@ export default function EssayWorkspace() {
     return t.split(/\s+/).filter(Boolean).length;
   }
 
-  async function persistEssay(createVersion = true, options?: { manual?: boolean }) {
+  function beginBlankDraft(nextForm: FormState) {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    dirtyRef.current = false;
+    setSelectedId(null);
+    setForm(nextForm);
+    setComments([]);
+    setSelection(null);
+    setNewCommentText("");
+    setSaveError(null);
+    setSaveState("idle");
+    setPromptExpanded(false);
+    setEditorKey((k) => k + 1);
+  }
+
+  async function persistEssay(createVersion = true, options?: { manual?: boolean }): Promise<string | null> {
     const plain = form.plainText.trim();
     const hasContent = Boolean(plain || form.richContent.trim());
     if (!hasContent) {
       if (options?.manual) {
         setSaveError("Add some essay text before saving.");
       }
-      return false;
+      return null;
     }
 
     setSaveState("saving");
@@ -201,6 +226,10 @@ export default function EssayWorkspace() {
         if (!res.ok) throw new Error("Save failed");
         const data = (await res.json()) as { essay: Essay };
         setRows((prev) => prev.map((e) => (e.id === data.essay.id ? { ...e, ...data.essay } : e)));
+        dirtyRef.current = false;
+        setSaveState("saved");
+        setTimeout(() => setSaveState("idle"), 2000);
+        return data.essay.id;
       } else {
         const res = await fetch("/api/essays", {
           method: "POST",
@@ -211,15 +240,15 @@ export default function EssayWorkspace() {
         const data = (await res.json()) as { essay: Essay };
         setSelectedId(data.essay.id);
         await refreshEssays();
+        dirtyRef.current = false;
+        setSaveState("saved");
+        setTimeout(() => setSaveState("idle"), 2000);
+        return data.essay.id;
       }
-      dirtyRef.current = false;
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 2000);
-      return true;
     } catch (e: unknown) {
       setSaveState("error");
       setSaveError(e instanceof Error ? e.message : "Could not save");
-      return false;
+      return null;
     }
   }
 
@@ -232,8 +261,7 @@ export default function EssayWorkspace() {
       const hasDraft = form.title.trim() || form.plainText.trim() || form.richContent.trim();
       if (!hasDraft) return;
       if (!window.confirm("Discard this unsaved draft?")) return;
-      setForm(emptyForm);
-      setSaveError(null);
+      beginBlankDraft(emptyForm);
       return;
     }
 
@@ -297,8 +325,16 @@ export default function EssayWorkspace() {
   }
 
   async function addComment() {
-    if (!selected || !selection || !newCommentText.trim()) return;
-    const res = await fetch(`/api/essays/${selected.id}/comments`, {
+    if (!selection || !newCommentText.trim()) return;
+    let essayId = selectedId;
+    if (!essayId) {
+      essayId = await persistEssay(true);
+      if (!essayId) {
+        setSaveError("Save your draft first to comment on selected wording.");
+        return;
+      }
+    }
+    const res = await fetch(`/api/essays/${essayId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -311,7 +347,7 @@ export default function EssayWorkspace() {
     if (res.ok) {
       setNewCommentText("");
       setSelection(null);
-      await loadComments(selected.id);
+      await loadComments(essayId);
     }
   }
 
@@ -402,7 +438,7 @@ export default function EssayWorkspace() {
     const promptText = selectedPrompt ? selectedPrompt.question : customPromptText.trim();
     if (!promptText) return;
     setSelectedId(null);
-    setForm(buildSupplementTemplate(promptText));
+    beginBlankDraft(buildSupplementTemplate(promptText));
   }
 
   const { commonRows, supplementRows } = React.useMemo(() => {
@@ -417,9 +453,7 @@ export default function EssayWorkspace() {
   React.useEffect(() => {
     if (tab !== "university") return;
     if (selectedId && supplementRows.some((row) => row.id === selectedId)) return;
-    setSelectedId(null);
-    setForm(buildSupplementTemplate());
-    setPromptExpanded(false);
+    beginBlankDraft(buildSupplementTemplate());
   }, [tab, selectedId, supplementRows, selectedUniversitySlug, selectedPromptId, customPromptText]);
 
   return (
@@ -469,9 +503,7 @@ export default function EssayWorkspace() {
               type="button"
               onClick={() => {
                 setTab("university");
-                setSelectedId(null);
-                setForm(buildSupplementTemplate());
-                setPromptExpanded(false);
+                beginBlankDraft(buildSupplementTemplate());
               }}
               className={["nav-pill-link flex-1 text-center !text-xs", tab === "university" ? "nav-pill-link--active" : ""].join(" ")}
             >
@@ -481,7 +513,7 @@ export default function EssayWorkspace() {
 
           {tab === "university" ? (
             <div className="relative space-y-2 overflow-visible border-b border-border-subtle px-3 py-3">
-              <select value={selectedUniversitySlug} onChange={(e) => setSelectedUniversitySlug(e.target.value)} className="input-base !text-xs">
+              <select value={selectedUniversitySlug} onChange={(e) => setSelectedUniversitySlug(e.target.value)} className="input-base !text-sm">
                 <option value="">Select university</option>
                 {savedUniversitySlugs.map((slug) => {
                   const uni = universities.find((u) => u.slug === slug);
@@ -516,10 +548,10 @@ export default function EssayWorkspace() {
                     }
                   }}
                   placeholder="Paste the official prompt"
-                  className="input-base h-16 resize-none !text-xs"
+                  className="input-base h-20 resize-none !text-sm"
                 />
               ) : null}
-              <button type="button" onClick={createSupplementDraft} className="btn-primary w-full !py-2 !text-xs">
+              <button type="button" onClick={createSupplementDraft} className="btn-primary w-full !py-2.5 !text-sm">
                 New supplement
               </button>
             </div>
@@ -527,10 +559,7 @@ export default function EssayWorkspace() {
             <div className="border-b border-border-subtle px-3 py-3">
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedId(null);
-                  setForm(emptyForm);
-                }}
+                onClick={() => beginBlankDraft(emptyForm)}
                 className="btn-secondary w-full !text-xs"
               >
                 <MaterialIcon name="add" className="mr-1 !text-sm" />
@@ -606,28 +635,47 @@ export default function EssayWorkspace() {
         </header>
 
         {promptText ? (
-          <div className="shrink-0 border-b border-border-subtle bg-surface-container-low px-5 py-1.5 sm:px-6">
-            <div className="flex items-start gap-2">
-              <span className="shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">Prompt</span>
-              <div className="min-w-0 flex-1">
-                <p
-                  className={[
-                    "text-xs leading-snug text-text-secondary whitespace-pre-wrap",
-                    !promptExpanded ? "line-clamp-2" : "max-h-24 overflow-y-auto pr-1",
-                  ].join(" ")}
-                >
-                  {promptText}
-                </p>
-                {promptNeedsExpand ? (
-                  <button
-                    type="button"
-                    onClick={() => setPromptExpanded((v) => !v)}
-                    className="mt-0.5 text-[11px] font-medium text-primary hover:underline"
+          <div className="shrink-0 border-b border-border-subtle bg-surface-container-low px-5 py-2.5 sm:px-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-2">
+                <span className="shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">Prompt</span>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={[
+                      tab === "university" ? "text-sm" : "text-xs",
+                      "leading-relaxed text-text-secondary whitespace-pre-wrap",
+                      !promptExpanded ? "line-clamp-3" : "max-h-32 overflow-y-auto pr-1",
+                    ].join(" ")}
                   >
-                    {promptExpanded ? "Collapse prompt" : "Show full prompt"}
-                  </button>
-                ) : null}
+                    {promptText}
+                  </p>
+                  {promptNeedsExpand ? (
+                    <button
+                      type="button"
+                      onClick={() => setPromptExpanded((v) => !v)}
+                      className="mt-1 text-[11px] font-medium text-primary hover:underline"
+                    >
+                      {promptExpanded ? "Collapse prompt" : "Show full prompt"}
+                    </button>
+                  ) : null}
+                </div>
               </div>
+              <Link
+                href={selectedId ? `/resources?tab=essay-assistant&essayId=${selectedId}` : "/resources?tab=essay-assistant"}
+                className="btn-secondary shrink-0 !px-2.5 !py-1.5 !text-xs"
+              >
+                Essay guidance
+              </Link>
+            </div>
+            <div className="mt-3 border-t border-border-subtle pt-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Writing guidance</p>
+              <ul className="mt-1.5 grid gap-1 sm:grid-cols-2">
+                {ESSAY_GUIDANCE_TIPS.map((tip) => (
+                  <li key={tip} className="text-xs leading-relaxed text-text-secondary">
+                    · {tip}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ) : null}
@@ -645,19 +693,23 @@ export default function EssayWorkspace() {
           </div>
 
           {selection ? (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+              <div className="hidden max-w-[14rem] truncate rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] text-text-secondary lg:block">
+                &ldquo;{selection.text.slice(0, 80)}
+                {selection.text.length > 80 ? "…" : ""}&rdquo;
+              </div>
               <input
                 value={newCommentText}
                 onChange={(e) => setNewCommentText(e.target.value)}
-                placeholder="Comment on selection…"
-                className="input-base !w-48 !py-1.5 !text-xs sm:!w-64"
+                placeholder="Comment on selected wording…"
+                className="input-base min-w-0 flex-1 !py-1.5 !text-xs sm:!w-56"
               />
               <button type="button" onClick={() => void addComment()} className="btn-primary !px-3 !py-1.5 !text-xs">
                 Add comment
               </button>
             </div>
           ) : (
-            <span className="hidden text-xs text-text-muted sm:inline">Select text to add a comment</span>
+            <span className="hidden text-xs text-text-muted sm:inline">Highlight wording in your essay to add a counselor-style comment</span>
           )}
         </div>
 
@@ -667,6 +719,7 @@ export default function EssayWorkspace() {
 
         <div className="flex min-h-0 flex-1">
           <EssayRichEditor
+            key={editorKey}
             content={form.richContent || form.content}
             onChange={handleEditorChange}
             onBlur={() => void persistEssay(false)}

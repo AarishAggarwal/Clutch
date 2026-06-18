@@ -116,7 +116,7 @@ function LoginContent() {
   function onGoogle() {
     setErrorPresentation(null);
     setCredentialExtraHint(null);
-    void signIn("google", { callbackUrl: "/auth/complete-profile" });
+    void signIn("google", { callbackUrl });
   }
 
   if (!loginRole) {

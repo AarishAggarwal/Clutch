@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { isStudentProfileComplete } from "@/lib/studentProfileComplete";
 
 type Grade = "9" | "10" | "11" | "12" | "";
 
@@ -29,6 +30,8 @@ export default function CompleteProfilePage() {
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
 
+  const [profileChecked, setProfileChecked] = React.useState(false);
+
   React.useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/auth/login?role=student&callbackUrl=/auth/complete-profile");
@@ -43,16 +46,24 @@ export default function CompleteProfilePage() {
     if (status !== "authenticated") return;
     void (async () => {
       const res = await fetch("/api/profile");
-      if (!res.ok) return;
+      if (!res.ok) {
+        setProfileChecked(true);
+        return;
+      }
       const data = (await res.json()) as { profile: Record<string, unknown> };
       const p = data.profile;
+      if (isStudentProfileComplete(p as Parameters<typeof isStudentProfileComplete>[0])) {
+        router.replace("/dashboard");
+        return;
+      }
       if (typeof p.fullName === "string") setFullName(p.fullName);
       if (typeof p.schoolName === "string") setSchoolName(p.schoolName);
       if (typeof p.location === "string") setLocation(p.location);
       if (typeof p.interests === "string") setInterests(p.interests);
       if (typeof p.intendedMajors === "string") setIntendedMajors(p.intendedMajors);
+      setProfileChecked(true);
     })();
-  }, [status]);
+  }, [status, router]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,7 +97,7 @@ export default function CompleteProfilePage() {
     }
   }
 
-  if (status === "loading") {
+  if (status === "loading" || !profileChecked) {
     return (
       <div className="page-wrap max-w-3xl py-10">
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
