@@ -77,6 +77,7 @@ export default function EssayWorkspace() {
   const [selectedPromptId, setSelectedPromptId] = React.useState("");
   const [customPromptText, setCustomPromptText] = React.useState("");
   const [promptExpanded, setPromptExpanded] = React.useState(false);
+  const [supplementPanelMinimized, setSupplementPanelMinimized] = React.useState(false);
   const [comments, setComments] = React.useState<EssayComment[]>([]);
   const [activeCommentId, setActiveCommentId] = React.useState<string | null>(null);
   const [showResolvedComments, setShowResolvedComments] = React.useState(false);
@@ -183,6 +184,7 @@ export default function EssayWorkspace() {
     setSaveError(null);
     setSaveState("idle");
     setPromptExpanded(false);
+    setSupplementPanelMinimized(false);
     setEditorKey((k) => k + 1);
   }
 
@@ -635,6 +637,19 @@ export default function EssayWorkspace() {
         </header>
 
         {promptText ? (
+          tab === "university" && supplementPanelMinimized ? (
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle bg-surface-container-low px-5 py-2 sm:px-6">
+              <p className="truncate text-xs text-text-muted">Prompt and writing guidance hidden — more room for your draft.</p>
+              <button
+                type="button"
+                onClick={() => setSupplementPanelMinimized(false)}
+                className="btn-secondary shrink-0 !px-2.5 !py-1.5 !text-xs"
+              >
+                <MaterialIcon name="expand_more" className="mr-1 !text-sm" />
+                Show prompt & guidance
+              </button>
+            </div>
+          ) : (
           <div className="shrink-0 border-b border-border-subtle bg-surface-container-low px-5 py-2.5 sm:px-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -644,12 +659,12 @@ export default function EssayWorkspace() {
                     className={[
                       tab === "university" ? "text-sm" : "text-xs",
                       "leading-relaxed text-text-secondary whitespace-pre-wrap",
-                      !promptExpanded ? "line-clamp-3" : "max-h-32 overflow-y-auto pr-1",
+                      tab === "university" ? "max-h-32 overflow-y-auto pr-1" : !promptExpanded ? "line-clamp-3" : "max-h-32 overflow-y-auto pr-1",
                     ].join(" ")}
                   >
                     {promptText}
                   </p>
-                  {promptNeedsExpand ? (
+                  {tab !== "university" && promptNeedsExpand ? (
                     <button
                       type="button"
                       onClick={() => setPromptExpanded((v) => !v)}
@@ -660,12 +675,24 @@ export default function EssayWorkspace() {
                   ) : null}
                 </div>
               </div>
-              <Link
-                href={selectedId ? `/resources?tab=essay-assistant&essayId=${selectedId}` : "/resources?tab=essay-assistant"}
-                className="btn-secondary shrink-0 !px-2.5 !py-1.5 !text-xs"
-              >
-                Essay guidance
-              </Link>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {tab === "university" ? (
+                  <button
+                    type="button"
+                    onClick={() => setSupplementPanelMinimized(true)}
+                    className="btn-secondary !px-2.5 !py-1.5 !text-xs"
+                  >
+                    <MaterialIcon name="expand_less" className="mr-1 !text-sm" />
+                    Minimize prompt & guidance
+                  </button>
+                ) : null}
+                <Link
+                  href={selectedId ? `/resources?tab=essay-assistant&essayId=${selectedId}` : "/resources?tab=essay-assistant"}
+                  className="btn-secondary !px-2.5 !py-1.5 !text-xs"
+                >
+                  Essay guidance
+                </Link>
+              </div>
             </div>
             <div className="mt-3 border-t border-border-subtle pt-2.5">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Writing guidance</p>
@@ -678,6 +705,7 @@ export default function EssayWorkspace() {
               </ul>
             </div>
           </div>
+          )
         ) : null}
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-surface px-5 py-2 sm:px-6">
