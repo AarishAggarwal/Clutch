@@ -638,15 +638,15 @@ export default function EssayWorkspace() {
 
         {promptText ? (
           tab === "university" && supplementPanelMinimized ? (
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle bg-surface-container-low px-5 py-2 sm:px-6">
-              <p className="truncate text-xs text-text-muted">Prompt and writing guidance hidden — more room for your draft.</p>
+            <div className="flex shrink-0 justify-center border-b border-border-subtle bg-surface-container-low py-0.5">
               <button
                 type="button"
                 onClick={() => setSupplementPanelMinimized(false)}
-                className="btn-secondary shrink-0 !px-2.5 !py-1.5 !text-xs"
+                className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted hover:bg-surface-container-high hover:text-text-primary"
+                title="Show prompt & guidance"
+                aria-label="Show prompt and guidance"
               >
-                <MaterialIcon name="expand_more" className="mr-1 !text-sm" />
-                Show prompt & guidance
+                <MaterialIcon name="expand_more" className="!text-lg" />
               </button>
             </div>
           ) : (
@@ -680,10 +680,11 @@ export default function EssayWorkspace() {
                   <button
                     type="button"
                     onClick={() => setSupplementPanelMinimized(true)}
-                    className="btn-secondary !px-2.5 !py-1.5 !text-xs"
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted hover:bg-surface-container-high hover:text-text-primary"
+                    title="Minimize prompt & guidance"
+                    aria-label="Minimize prompt and guidance"
                   >
-                    <MaterialIcon name="expand_less" className="mr-1 !text-sm" />
-                    Minimize prompt & guidance
+                    <MaterialIcon name="expand_less" className="!text-lg" />
                   </button>
                 ) : null}
                 <Link
